@@ -15,7 +15,7 @@ from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 from ._image_features_reader import ImageFeaturesH5Reader
 
-from tools.refer.refer import REFER
+from tools.refer.refer import REFER, REFERTALK2CAR
 
 
 def iou(anchors, gt_boxes):
@@ -84,6 +84,8 @@ class ReferExpressionDataset(Dataset):
 
         if task == "refcocog":
             self.refer = REFER(dataroot, dataset=task, splitBy="umd")
+        elif task == "talk2car":
+            self.refer = REFERTALK2CAR(dataroot, dataset=task)
         else:
             self.refer = REFER(dataroot, dataset=task, splitBy="unc")
 
