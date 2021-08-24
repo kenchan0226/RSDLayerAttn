@@ -37,7 +37,7 @@ def iou(anchors, gt_boxes):
 
     boxes = anchors.view(N, 1, 4).expand(N, K, 4)
     query_boxes = gt_boxes.view(1, K, 4).expand(N, K, 4)
-
+    #print(boxes)
     iw = (
         torch.min(boxes[:, :, 2], query_boxes[:, :, 2])
         - torch.max(boxes[:, :, 0], query_boxes[:, :, 0])
@@ -85,6 +85,7 @@ class ReferExpressionDataset(Dataset):
         if task == "refcocog":
             self.refer = REFER(dataroot, dataset=task, splitBy="umd")
         elif task == "talk2car":
+            print("")
             self.refer = REFERTALK2CAR(dataroot, dataset=task)
         else:
             self.refer = REFER(dataroot, dataset=task, splitBy="unc")
@@ -238,36 +239,65 @@ class ReferExpressionDataset(Dataset):
         mix_boxes = boxes
         mix_features = features
         mix_num_boxes = min(int(num_boxes), self._max_region_num)
+        
+        #print("index:{}, ref_box:{}, predict:{}".format(index, ref_box, mix_boxes_ori[:, :1]))
+        
         mix_target = iou(
             torch.tensor(mix_boxes_ori[:, :4]).float(),
             torch.tensor([ref_box]).float(),
         )
-
+        
+        
+        bbox1 = mix_boxes_ori[torch.argmax(mix_target),:4].tolist()
+        int_bbox1=[]
+        for k in bbox1:
+            k =int(k)
+            int_bbox1.append(k)
+        #print("index:{}, 1！！！！predict_box:{}".format(index,int_bbox1))
+        print(index, int_bbox1)
+        
+        
         image_mask = [1] * (mix_num_boxes)
         while len(image_mask) < self._max_region_num:
             image_mask.append(0)
-
         mix_boxes_pad = np.zeros((self._max_region_num, self._num_locs))
         mix_features_pad = np.zeros((self._max_region_num, 2048))
 
         mix_boxes_pad[:mix_num_boxes] = mix_boxes[:mix_num_boxes]
         mix_features_pad[:mix_num_boxes] = mix_features[:mix_num_boxes]
-
+                
+        # pad mix box ori
+        mix_boxes_ori_pad = np.zeros((self._max_region_num, self._num_locs))
+        mix_boxes_ori_pad[:mix_num_boxes]  = mix_boxes_ori[:mix_num_boxes]
+        
         # appending the target feature.
         features = torch.tensor(mix_features_pad).float()
         image_mask = torch.tensor(image_mask).long()
         spatials = torch.tensor(mix_boxes_pad).float()
-
+        
+        
         target = torch.zeros((self._max_region_num, 1)).float()
         target[:mix_num_boxes] = mix_target[:mix_num_boxes]
-
-        spatials_ori = torch.tensor(mix_boxes_ori).float()
-
+        
+        #bbox2 = mix_boxes_ori[torch.argmax(target[:mix_num_boxes]),:4].tolist()
+        
+        spatials_ori = torch.tensor(mix_boxes_ori_pad).float()
+        #print(spatials_ori)
         caption = entry["token"]
         input_mask = entry["input_mask"]
         segment_ids = entry["segment_ids"]
+        
+        #print("spatials")
+        #print(spatials[1,:4])
+        #print("mix_boxes")
+        #print(mix_boxes[1,:4])
+        #print("spatials_ori")
+        #print(spatials_ori[1,:4])
+        #print("mix_boxes_ori")
+        #print(mix_boxes_ori[1,:4])
+        #exit()
 
-        return features, spatials, image_mask, caption, target, input_mask, segment_ids, image_id
+        return features, spatials, spatials_ori, image_mask, caption, target, input_mask, segment_ids, image_id
 
     def __len__(self):
         return len(self.entries)

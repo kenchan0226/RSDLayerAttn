@@ -231,7 +231,7 @@ class REFER:
 	def getRefBox(self, ref_id):
 		ref = self.Refs[ref_id]
 		ann = self.refToAnn[ref_id]
-		return ann['bbox']  # [x, y, w, h]
+		return ann["bbox"]  # [x, y, w, h]
 
 	def showRef(self, ref, seg_box='seg'):
 		ax = plt.gca()
@@ -517,7 +517,7 @@ class REFERTALK2CAR:
 	def getRefBox(self, ref_id):
 		ref = self.Refs[ref_id]
 		ann = self.refToAnn[ref_id]
-		return ann['bbox']  # [x, y, w, h]
+		return ann["bbox"]  # [x, y, w, h]
 
 	"""
 	def showRef(self, ref, seg_box='seg'):

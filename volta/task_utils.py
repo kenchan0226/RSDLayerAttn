@@ -109,7 +109,10 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
     elif task_cfg[task_id]["type"] == "V-logit":
         loss = criterion(vil_prediction, target)
         loss = loss.mean() * target.size(1)
-        _, select_idx = torch.max(vil_prediction, dim=1)
+        #print(vil_prediction)   
+          
+        boxxx, select_idx = torch.max(vil_prediction, dim=1)
+        #print(select_idx)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
 
@@ -446,13 +449,13 @@ def compute_score_with_logits(logits, labels):
     return scores
 
 
-def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader, criterion, results, others):
+def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader, criterion, results, others, bbox):
     batch = tuple(t.cuda(device=device, non_blocking=True) for t in batch)
 
     if task_cfg[task_id]["type"] == "V-logit-mc":
         features, spatials, image_mask, question, target, input_mask, segment_ids, multi_choice_ids, question_id = batch
     else:
-        features, spatials, image_mask, question, target, input_mask, segment_ids, question_id = batch
+        features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id = batch
 
     batch_size = features.size(0)
 
@@ -591,11 +594,32 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
     elif task_cfg[task_id]["type"] == "V-logit":
         loss = criterion(vil_prediction, target)
         loss = loss.mean() * target.size(1)
+        #print()
+        #print(vil_prediction.size())
+        #print("vil_prediction")
+        #print(vil_prediction[0,:,0])
+        # vli_predition: [batch, num_regions, 1]
         _, select_idx = torch.max(vil_prediction, dim=1)
+        #print(select_idx.size())
+        #print("idx")
+        #print(select_idx[0])
+        #print("target")
+        #print(target.size())
+        #print("spatials_ori")
+        #print(spatials_ori[select_idx[0],:4])
+        #exit()
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
 
         for i in range(select_idx.size(0)):
+            bbox_item = spatials_ori[i, select_idx[i],:4].cpu().detach().tolist()
+            bbox_item = bbox_item[0]
+            bbox.append(
+              {
+                question_id[i].item(): [bbox_item[0], bbox_item[1], bbox_item[2]-bbox_item[0], bbox_item[3]-bbox_item[1]]
+                #question_id[i].item(): spatials_ori[i, select_idx[i],:4].cpu().detach().tolist()
+              }
+            )
             results.append(
                 {
                     "id": question_id[i].item(),
@@ -627,4 +651,4 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         loss = loss.mean()
         batch_score = compute_score_with_logits(vil_prediction, target).sum()
 
-    return float(loss), float(batch_score), batch_size, results, others
+    return float(loss), float(batch_score), batch_size, results, others, bbox

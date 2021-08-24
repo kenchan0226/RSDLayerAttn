@@ -158,10 +158,10 @@ def main():
     model.eval()
     results = []
     others = []
+    bbox = []
     for i, batch in tqdm(enumerate(dl_val), total=task2num_iters[task]):
-        loss, score, batch_size, results, others = EvaluatingModel(config, task_cfg, device, task, batch,
-                                                                   model, dl_val, criterion, results, others)
-
+        loss, score, batch_size, results, others, bbox = EvaluatingModel(config, task_cfg, device, task, batch,
+                                                                   model, dl_val, criterion, results, others, bbox)
         tb_logger.step_val(0, float(loss), float(score), task, batch_size, "val")
         sys.stdout.write("%d/%d\r" % (i, len(dl_val)))
         sys.stdout.flush()
@@ -174,6 +174,7 @@ def main():
         json_path = os.path.join(savePath, task_cfg[task]["val_split"])
     json.dump(results, open(json_path + "_result.json", "w"))
     json.dump(others, open(json_path + "_others.json", "w"))
+    json.dump(bbox, open(json_path + "_prediction.json", "w"))
 
 
 if __name__ == "__main__":
