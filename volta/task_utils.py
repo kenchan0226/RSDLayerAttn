@@ -32,7 +32,7 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
     if task_cfg[task_id]["type"] == "V-logit-mc":
         features, spatials, image_mask, question, target, input_mask, segment_ids, multi_choice_ids, question_id = batch
     else:
-        features, spatials, image_mask, question, target, input_mask, segment_ids, question_id = batch
+        features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id = batch
 
     batch_size = features.size(0)
     if task_cfg[task_id]["process"] in ["dialog"]:
