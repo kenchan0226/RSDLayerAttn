@@ -1188,6 +1188,9 @@ class BertForVLTasks(BertPreTrainedModel):
                     )
                 else:
                     task2clf[task_id] = nn.Linear(config.v_hidden_size, 1)
+            elif task_type == "VL-contrast":
+                print("VL-contrast classifier")
+                task2clf[task_id] = AttnBasedClassifier(config.hidden_size, config.v_hidden_size, config.clf_latent_size)
             else:
                 raise ValueError("Undefined task type: %s" % task_type)
 
@@ -1247,6 +1250,23 @@ class BertForVLTasks(BertPreTrainedModel):
         elif self.task_cfg[task_id]["type"] == "VL-binary-classifier":
             # NLVR
             vil_prediction = self.clfs_dict[task_id](pooled_output.view(-1, pooled_output.size(1) * 2))
+        elif self.task_cfg[task_id]["type"].startswith("VL-contrast"):
+            # TODO: dropout?
+            # TODO: VL-contrast
+            # TODO: output attention score
+            print("sequence_output_t:")
+            print(sequence_output_t.size())
+            print("sequence_output_v:")
+            print(sequence_output_v.size())
+            print("attention_mask")
+            print(attention_mask.size())
+            vil_prediction, attn_score = self.clfs_dict[task_id](sequence_output_t, sequence_output_v, attention_mask)
+            print("vil_prediction")
+            print(vil_prediction.size())
+            print(vil_prediction[0].cpu().numpy())
+            print("attn_score")
+            print(attn_score.size())
+            exit()
         else:
             vil_prediction = self.clfs_dict[task_id](pooled_output)
 
@@ -1254,3 +1274,79 @@ class BertForVLTasks(BertPreTrainedModel):
             return vil_prediction, vision_prediction, linguistic_prediction, all_attention_mask, \
                    encoded_layers_t, encoded_layers_v
         return vil_prediction, vision_prediction, linguistic_prediction, all_attention_mask
+
+
+class AttnBasedClassifier(nn.Module):
+    def __init__(self, t_hidden_size, v_hidden_size, latent_size):
+        super(AttnBasedClassifier, self).__init__()
+        self.self_attn = nn.Linear(t_hidden_size, 1)
+        self.v_mlp = nn.Linear(v_hidden_size, latent_size)
+        self.t_mlp = nn.Linear(t_hidden_size, latent_size)
+        self.cos = nn.CosineSimilarity(dim=2, eps=1e-6)
+        print("VL-contrast classifier built")
+
+    def forward(self, sequence_output_t, sequence_output_v, attn_mask_t):
+        """
+        :param sequence_output_t: [batch, seq_len, t_hidden_size]
+        :param sequence_output_v: [batch, v_seq_len, v_hidden_size]
+        :param attn_mask_t: [batch, seq_len]
+        :return: sim_scores: [batch_size, v_seq_len], t_weights: [batch, seq_len]
+        """
+        # TODO: multiple positive
+        # TODO: config clf hidden size
+        # Compute self attention over text
+        attn_score_unnormalized = self.self_attn(sequence_output_t).squeeze(2)  # [batch, seq_len]
+        attn_score = masked_softmax(attn_score_unnormalized, mask=attn_mask_t, dim=1, memory_efficient=True)  # [batch, seq_len]
+        print("attn_score")
+        print(attn_score.size())
+        print(attn_score[0,:].cpu().numpy())
+        attn_score = attn_score.unsqueeze(1)  # [batch_size, 1, seq_len]
+        t_context = torch.bmm(attn_score, sequence_output_t)  # [batch_size, 1, t_hidden_size]
+        t_context = t_context.squeeze(1)  # [batch_size, t_hidden_size]
+        attn_score = attn_score.squeeze(1)  # [batch_size, seq_len]
+        # Compute similarity score between t_context and each region feature
+        projected_text_attention_ctx = self.t_mlp(t_context)  # [batch_size, latent_size]
+        projected_sequence_output_v = self.v_mlp(sequence_output_v)  # [batch_size, v_seq_len, latent_size]
+        v_seq_len = projected_sequence_output_v.size(1)
+        projected_text_attention_ctx = projected_text_attention_ctx.unsqueeze(1).expand(-1, v_seq_len, -1)  # [batch_size, v_seq_len, latent_size]
+        sim_scores = self.cos(projected_text_attention_ctx, projected_sequence_output_v)  # [batch_size, v_seq_len]
+        return sim_scores, attn_score
+
+
+def masked_softmax(vector: torch.Tensor,
+                   mask: torch.Tensor,
+                   dim: int = -1,
+                   memory_efficient: bool = False,
+                   mask_fill_value: float = -1e32) -> torch.Tensor:
+    """
+    Adapted from https://github.com/allenai/allennlp
+    ``torch.nn.functional.softmax(vector)`` does not work if some elements of ``vector`` should be
+    masked.  This performs a softmax on just the non-masked portions of ``vector``.  Passing
+    ``None`` in for the mask is also acceptable; you'll just get a regular softmax.
+    ``vector`` can have an arbitrary number of dimensions; the only requirement is that ``mask`` is
+    broadcastable to ``vector's`` shape.  If ``mask`` has fewer dimensions than ``vector``, we will
+    unsqueeze on dimension 1 until they match.  If you need a different unsqueezing of your mask,
+    do it yourself before passing the mask into this function.
+    If ``memory_efficient`` is set to true, we will simply use a very large negative number for those
+    masked positions so that the probabilities of those positions would be approximately 0.
+    This is not accurate in math, but works for most cases and consumes less memory.
+    In the case that the input vector is completely masked and ``memory_efficient`` is false, this function
+    returns an array of ``0.0``. This behavior may cause ``NaN`` if this is used as the last layer of
+    a model that uses categorical cross-entropy loss. Instead, if ``memory_efficient`` is true, this function
+    will treat every element as equal, and do softmax over equal numbers.
+    """
+    if mask is None:
+        result = torch.nn.functional.softmax(vector, dim=dim)
+    else:
+        mask = mask.float()
+        while mask.dim() < vector.dim():
+            mask = mask.unsqueeze(1)
+        if not memory_efficient:
+            # To limit numerical errors from large vector elements outside the mask, we zero these out.
+            result = torch.nn.functional.softmax(vector * mask, dim=dim)
+            result = result * mask
+            result = result / (result.sum(dim=dim, keepdim=True) + 1e-13)
+        else:
+            masked_vector = vector.masked_fill((1 - mask).byte(), mask_fill_value)
+            result = torch.nn.functional.softmax(masked_vector, dim=dim)
+    return result

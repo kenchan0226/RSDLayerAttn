@@ -247,15 +247,15 @@ class ReferExpressionDataset(Dataset):
             torch.tensor([ref_box]).float(),
         )
         
-        
+        """
         bbox1 = mix_boxes_ori[torch.argmax(mix_target),:4].tolist()
         int_bbox1=[]
         for k in bbox1:
             k =int(k)
             int_bbox1.append(k)
-        #print("index:{}, 1！！！！predict_box:{}".format(index,int_bbox1))
+        #print("index:{}, predict_box:{}".format(index,int_bbox1))
         print(index, int_bbox1)
-        
+        """
         
         image_mask = [1] * (mix_num_boxes)
         while len(image_mask) < self._max_region_num:
