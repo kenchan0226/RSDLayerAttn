@@ -1190,7 +1190,7 @@ class BertForVLTasks(BertPreTrainedModel):
                     task2clf[task_id] = nn.Linear(config.v_hidden_size, 1)
             elif task_type == "VL-contrast":
                 print("VL-contrast classifier")
-                task2clf[task_id] = AttnBasedClassifier(config.hidden_size, config.v_hidden_size, config.clf_latent_size)
+                task2clf[task_id] = AttnBasedClassifier(config.hidden_size, config.v_hidden_size, self.task_cfg[task_id]["clf_latent_size"])
             else:
                 raise ValueError("Undefined task type: %s" % task_type)
 
