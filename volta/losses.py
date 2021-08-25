@@ -8,6 +8,7 @@ import copy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from .utils import masked_log_softmax
 
 
 # ==================================================================================================================== #
@@ -145,3 +146,40 @@ pre_vis_criterions = {
     "5": huber_2048,
     "6": xent_1601,
 }
+
+# ==================================================================================================================== #
+#                                                  Fine-tuning                                                  #
+# ==================================================================================================================== #
+
+
+class InfoNCELoss(nn.Module):
+    def __init__(self):
+        super(InfoNCELoss, self).__init__()
+
+    def forward(self, vil_prediction, target, attn_mask_v):
+        """
+        :param vil_prediction: [batch, v_seq_len, 1]
+        :param target: [batch, v_seq_len, 1]
+        :param attn_mask_v: [batch, v_seq_len]
+        :return:
+        """
+        vil_prediction = vil_prediction.squeeze(2)  # [batch, v_seq_len]
+        target = target.squeeze(2)  # [batch, v_seq_len]
+        print("vil_prediction")
+        print(vil_prediction.size())
+        print(vil_prediction[0].detach().cpu().numpy())
+        print("target")
+        print(target.size())
+        print(target[0].detach().cpu().numpy())
+        _prediction_log_softmax = masked_log_softmax(vil_prediction, attn_mask_v, dim=1, memory_efficient=True)  # [batch, v_seq_len]
+        # select sum the matched instances, divided by the no. of matched instances
+        match_all = vil_prediction [target > 0.5]
+        print("match_all")
+        print(match_all.size())
+        print(match_all[0].detach().cpu().numpy())
+        nce_loss = torch.mean(match_all, dim=1)  # [batch]
+        print("nce")
+        print(nce_loss.size())
+        print(nce_loss[0].detach().cpu().numpy())
+        exit()
+        return nce_loss

@@ -16,14 +16,15 @@ from transformers import AutoTokenizer
 
 from volta.datasets import DatasetMapTrain, DatasetMapEval
 from volta.datasets._image_features_reader import ImageFeaturesH5Reader
+from volta.losses import InfoNCELoss
 
 
 logger = logging.getLogger(__name__)
 
 LossMap = {
     "BCEWithLogitLoss": nn.BCEWithLogitsLoss(reduction="mean"),
-    "CrossEntropyLoss": nn.CrossEntropyLoss()
-#    "InfoNCELoss": InfoNCELoss()
+    "CrossEntropyLoss": nn.CrossEntropyLoss(),
+    "InfoNCELoss": InfoNCELoss()
 }
 
 
@@ -109,11 +110,28 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
 
     elif task_cfg[task_id]["type"] == "V-logit":
         loss = criterion(vil_prediction, target)
+        print("loss")
+        print(loss.size())
+        print(loss[0].detach().cpu().numpy())
         loss = loss.mean() * target.size(1)
-        #print(vil_prediction)   
-          
-        boxxx, select_idx = torch.max(vil_prediction, dim=1)
+        print(loss.size())
+        print(loss[0].detach().cpu().numpy())
+        print("vil_prediction")
+        print(vil_prediction.size())
+        exit()
+        _, select_idx = torch.max(vil_prediction, dim=1)
         #print(select_idx)
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
+
+    elif task_cfg[task_id]["type"] == "VL-contrast":
+        loss = criterion(vil_prediction, target, image_mask)
+
+        loss = loss.mean() * target.size(1)
+        # print(vil_prediction)
+
+        _, select_idx = torch.max(vil_prediction, dim=1)
+        # print(select_idx)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
 
