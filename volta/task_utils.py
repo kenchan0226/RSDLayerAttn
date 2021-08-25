@@ -117,7 +117,7 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         batch_score = torch.sum(select_target > 0.5).item()
 
     elif task_cfg[task_id]["type"] == "VL-contrast":
-        loss = criterion(vil_prediction, target, image_mask)
+        loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
         #loss = loss.mean() * target.size(1)
         _, select_idx = torch.max(vil_prediction, dim=1)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
@@ -267,11 +267,8 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         batch_score = float(torch.sum(select_target > 0.5)) / batch_size
 
     elif task_cfg[task_id]["type"] == "VL-contrast":
-        loss = criterion(vil_prediction, target, image_mask)
-        # loss: []
-        print("loss")
-        print(loss.size())
-        print(loss.detach().cpu())
+        loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
+        print(loss)
         exit()
         #loss = loss.mean() * target.size(1)
         _, select_idx = torch.max(vil_prediction, dim=1)
