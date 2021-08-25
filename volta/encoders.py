@@ -1253,7 +1253,6 @@ class BertForVLTasks(BertPreTrainedModel):
             vil_prediction = self.clfs_dict[task_id](pooled_output.view(-1, pooled_output.size(1) * 2))
         elif self.task_cfg[task_id]["type"].startswith("VL-contrast"):
             # TODO: dropout?
-            # TODO: VL-contrast
             # TODO: output attention score
             #print("sequence_output_t:")
             #print(sequence_output_t.size())

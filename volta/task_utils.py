@@ -118,12 +118,8 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
 
     elif task_cfg[task_id]["type"] == "VL-contrast":
         loss = criterion(vil_prediction, target, image_mask)
-
-        loss = loss.mean() * target.size(1)
-        # print(vil_prediction)
-
+        #loss = loss.mean() * target.size(1)
         _, select_idx = torch.max(vil_prediction, dim=1)
-        # print(select_idx)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
 
@@ -265,16 +261,21 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
 
     elif task_cfg[task_id]["type"] == "V-logit":
         loss = criterion(vil_prediction, target)
-        print("loss")
-        print(loss.size())
-        print(loss.item())
         loss = loss.mean() * target.size(1)
-        print(loss.size())
-        print(loss.item())
-        exit()
         _, select_idx = torch.max(vil_prediction, dim=1)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = float(torch.sum(select_target > 0.5)) / batch_size
+
+    elif task_cfg[task_id]["type"] == "VL-contrast":
+        loss = criterion(vil_prediction, target, image_mask)
+        # loss: []
+        print("loss")
+        print(loss.size())
+        exit()
+        #loss = loss.mean() * target.size(1)
+        _, select_idx = torch.max(vil_prediction, dim=1)
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
 
     elif task_cfg[task_id]["type"] == "V-logit-mc":
         vision_logit = vil_prediction[:, 101:]  # FIXME from ViLBERT

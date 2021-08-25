@@ -98,9 +98,9 @@ TASK19:
 TASK20:
   name: talk2car
   type: VL-contrast
-  loss: BCEWithLogitLoss
+  loss: InfoNCELoss
   process: normal
-  task_id: 19
+  task_id: 20
   dataroot: data/talk2car/annotations
   features_h5path1: data/talk2car/resnet101_faster_rcnn_genome_imgfeats/volta/refcoco+_unc_dets36_feat.lmdb
   features_h5path2: ''

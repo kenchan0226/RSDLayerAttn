@@ -181,5 +181,4 @@ class InfoNCELoss(nn.Module):
         print("nce")
         print(nce_loss.size())
         print(nce_loss[0].detach().cpu().numpy())
-        exit()
-        return nce_loss
+        return nce_loss.mean(dim=0)  #
