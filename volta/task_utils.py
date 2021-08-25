@@ -110,15 +110,7 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
 
     elif task_cfg[task_id]["type"] == "V-logit":
         loss = criterion(vil_prediction, target)
-        print("loss")
-        print(loss.size())
-        print(loss[0].detach().cpu().numpy())
         loss = loss.mean() * target.size(1)
-        print(loss.size())
-        print(loss[0].detach().cpu().numpy())
-        print("vil_prediction")
-        print(vil_prediction.size())
-        exit()
         _, select_idx = torch.max(vil_prediction, dim=1)
         #print(select_idx)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
@@ -274,7 +266,15 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
 
     elif task_cfg[task_id]["type"] == "V-logit":
         loss = criterion(vil_prediction, target)
+        print("loss")
+        print(loss.size())
+        print(loss[0].detach().cpu().numpy())
         loss = loss.mean() * target.size(1)
+        print(loss.size())
+        print(loss[0].detach().cpu().numpy())
+        print("vil_prediction")
+        print(vil_prediction.size())
+        exit()
         _, select_idx = torch.max(vil_prediction, dim=1)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = float(torch.sum(select_target > 0.5)) / batch_size
