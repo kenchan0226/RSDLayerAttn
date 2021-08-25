@@ -271,6 +271,7 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         # loss: []
         print("loss")
         print(loss.size())
+        print(loss.detach().cpu())
         exit()
         #loss = loss.mean() * target.size(1)
         _, select_idx = torch.max(vil_prediction, dim=1)

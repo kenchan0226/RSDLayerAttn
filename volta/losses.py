@@ -175,12 +175,16 @@ class InfoNCELoss(nn.Module):
         # select sum the matched instances, divided by the no. of matched instances
         print("_prediction_log_softmax")
         print(_prediction_log_softmax[0])
-        match_all = _prediction_log_softmax [target > 0.5]
-        print("match_all")
-        print(match_all.size())
-        print(match_all[0].detach().cpu().numpy())
-        nce_loss = torch.mean(match_all, dim=1)  # [batch]
-        print("nce")
+        selection_mask = (target > 0.5).float()
+        _prediction_log_softmax = _prediction_log_softmax * selection_mask
+        nce_loss = _prediction_log_softmax.sum(dim=1) / selection_mask.sum(dim=1)  # [batch]
+        print("selection_mask")
+        print(selection_mask.size())
+        print(selection_mask.detach().cpu().numpy())
+        print("_prediction_log_softmax")
+        print(_prediction_log_softmax.size())
+        print(_prediction_log_softmax.detach().cpu().numpy())
+        print("nce_loss")
         print(nce_loss.size())
-        print(nce_loss[0].detach().cpu().numpy())
+        print(nce_loss.detach().cpu().numpy())
         return nce_loss.mean(dim=0)  #
