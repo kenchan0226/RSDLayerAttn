@@ -177,7 +177,7 @@ class InfoNCELoss(nn.Module):
         print(_prediction_log_softmax[0])
         selection_mask = (target > 0.5).float()
         _prediction_log_softmax = _prediction_log_softmax * selection_mask
-        nce_loss = _prediction_log_softmax.sum(dim=1) / selection_mask.sum(dim=1)  # [batch]
+        nce_loss = _prediction_log_softmax.sum(dim=1) / (selection_mask.sum(dim=1) + 1e-13)  # [batch]
         print("selection_mask")
         print(selection_mask.size())
         print(selection_mask.detach().cpu().numpy())
