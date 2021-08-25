@@ -1263,7 +1263,7 @@ class BertForVLTasks(BertPreTrainedModel):
             vil_prediction, attn_score = self.clfs_dict[task_id](sequence_output_t, sequence_output_v, attention_mask)
             print("vil_prediction")
             print(vil_prediction.size())
-            print(vil_prediction[0].cpu().detach().numpy())
+            print(vil_prediction[0].detach().cpu().numpy())
             print("attn_score")
             print(attn_score.size())
             exit()
@@ -1299,7 +1299,7 @@ class AttnBasedClassifier(nn.Module):
         attn_score = masked_softmax(attn_score_unnormalized, mask=attn_mask_t, dim=1, memory_efficient=True)  # [batch, seq_len]
         print("attn_score")
         print(attn_score.size())
-        print(attn_score[0,:].cpu().numpy())
+        print(attn_score[0,:].detach().cpu().numpy())
         attn_score = attn_score.unsqueeze(1)  # [batch_size, 1, seq_len]
         t_context = torch.bmm(attn_score, sequence_output_t)  # [batch_size, 1, t_hidden_size]
         t_context = t_context.squeeze(1)  # [batch_size, t_hidden_size]
