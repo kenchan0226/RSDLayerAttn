@@ -165,19 +165,21 @@ class InfoNCELoss(nn.Module):
         """
         vil_prediction = vil_prediction.squeeze(2)  # [batch, v_seq_len]
         target = target.squeeze(2)  # [batch, v_seq_len]
+        """
         print("vil_prediction")
         print(vil_prediction.size())
         print(vil_prediction[0].detach().cpu().numpy())
         print("target")
         print(target.size())
         print(target[0].detach().cpu().numpy())
-        _prediction_log_softmax = masked_log_softmax(vil_prediction, attn_mask_v, dim=1)  # [batch, v_seq_len]
-        # select sum the matched instances, divided by the no. of matched instances
+        """
+        log_softmax_density_all = masked_log_softmax(vil_prediction, attn_mask_v, dim=1)  # [batch, v_seq_len]
+        ground_truth_region_mask = (target > 0.5).float()
+        log_softmax_density_positive_samples = log_softmax_density_all * ground_truth_region_mask
+        nce_loss = log_softmax_density_positive_samples.sum(dim=1) / (ground_truth_region_mask.sum(dim=1) + 1e-13)  # [batch], add + 1e-13 to avoid NaN when there is no target
+        """
         print("_prediction_log_softmax")
         print(_prediction_log_softmax[0])
-        selection_mask = (target > 0.5).float()
-        _prediction_log_softmax = _prediction_log_softmax * selection_mask
-        nce_loss = _prediction_log_softmax.sum(dim=1) / (selection_mask.sum(dim=1) + 1e-13)  # [batch]
         print("selection_mask")
         print(selection_mask.size())
         print(selection_mask.detach().cpu().numpy())
@@ -187,4 +189,5 @@ class InfoNCELoss(nn.Module):
         print("nce_loss")
         print(nce_loss.size())
         print(nce_loss.detach().cpu().numpy())
+        """
         return nce_loss.mean(dim=0)  #
