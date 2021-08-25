@@ -268,8 +268,8 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
 
     elif task_cfg[task_id]["type"] == "VL-contrast":
         loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
-        print(loss)
-        exit()
+        #print(loss)
+        #exit()
         #loss = loss.mean() * target.size(1)
         _, select_idx = torch.max(vil_prediction, dim=1)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))

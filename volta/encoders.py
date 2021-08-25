@@ -1190,7 +1190,7 @@ class BertForVLTasks(BertPreTrainedModel):
                     task2clf[task_id] = nn.Linear(config.v_hidden_size, 1)
             elif task_type == "VL-contrast":
                 print("VL-contrast classifier")
-                task2clf[task_id] = AttnBasedClassifier(config.hidden_size, config.v_hidden_size, self.task_cfg[task_id]["clf_latent_size"])
+                task2clf[task_id] = AttnBasedClassifier(config.hidden_size, config.v_hidden_size, self.task_cfg[task_id]["clf_latent_size"], dropout_prob)
             else:
                 raise ValueError("Undefined task type: %s" % task_type)
 
@@ -1252,7 +1252,6 @@ class BertForVLTasks(BertPreTrainedModel):
             # NLVR
             vil_prediction = self.clfs_dict[task_id](pooled_output.view(-1, pooled_output.size(1) * 2))
         elif self.task_cfg[task_id]["type"].startswith("VL-contrast"):
-            # TODO: dropout?
             # TODO: output attention score
             #print("sequence_output_t:")
             #print(sequence_output_t.size())
@@ -1260,6 +1259,7 @@ class BertForVLTasks(BertPreTrainedModel):
             #print(sequence_output_v.size())
             #print("attention_mask")
             #print(attention_mask.size())
+            #vil_prediction, attn_score = self.clfs_dict[task_id](self.dropout(sequence_output_t), self.dropout(sequence_output_v), attention_mask, image_attention_mask)
             vil_prediction, attn_score = self.clfs_dict[task_id](sequence_output_t, sequence_output_v, attention_mask, image_attention_mask)
             #print("vil_prediction")
             #print(vil_prediction.size())
@@ -1277,11 +1277,25 @@ class BertForVLTasks(BertPreTrainedModel):
 
 
 class AttnBasedClassifier(nn.Module):
-    def __init__(self, t_hidden_size, v_hidden_size, latent_size):
+    def __init__(self, t_hidden_size, v_hidden_size, latent_size, dropout_prob=0.1):
         super(AttnBasedClassifier, self).__init__()
         self.self_attn = nn.Linear(t_hidden_size, 1)
         self.v_mlp = nn.Linear(v_hidden_size, latent_size)
         self.t_mlp = nn.Linear(t_hidden_size, latent_size)
+        """
+        self.v_mlp = torch.nn.Sequential(
+            nn.Linear(v_hidden_size, v_hidden_size),
+            GeLU(),
+            torch.nn.Dropout(dropout_prob),
+            nn.Linear(v_hidden_size, latent_size)
+        )
+        self.t_mlp = torch.nn.Sequential(
+            nn.Linear(t_hidden_size, t_hidden_size),
+            GeLU(),
+            torch.nn.Dropout(dropout_prob),
+            nn.Linear(t_hidden_size, latent_size)
+        )
+        """
         self.cos = nn.CosineSimilarity(dim=2, eps=1e-6)
         print("VL-contrast classifier built")
 
@@ -1293,8 +1307,6 @@ class AttnBasedClassifier(nn.Module):
         :param attn_mask_v: [batch, v_seq_len]
         :return: sim_scores: [batch_size, v_seq_len, 1], t_weights: [batch, seq_len]
         """
-        # TODO: multiple positive
-        # TODO: config clf hidden size
         # Compute self attention over text
         attn_score_unnormalized = self.self_attn(sequence_output_t).squeeze(2)  # [batch, seq_len]
         attn_score = masked_softmax(attn_score_unnormalized, mask=attn_mask_t, dim=1)  # [batch, seq_len]
