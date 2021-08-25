@@ -1247,10 +1247,7 @@ class BertForVLTasks(BertPreTrainedModel):
         if self.task_cfg[task_id]["type"].startswith("V-logit"):
             vil_prediction = self.clfs_dict[task_id](self.dropout(sequence_output_v)) + (
                 (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
-            print("vil_prediction")
-            print(vil_prediction.size())
-            print(vil_prediction.detach().cpu().numpy())
-            exit()
+            # vil_prediction: [batch, 37, 1]
         elif self.task_cfg[task_id]["type"] == "VL-binary-classifier":
             # NLVR
             vil_prediction = self.clfs_dict[task_id](pooled_output.view(-1, pooled_output.size(1) * 2))
@@ -1264,7 +1261,7 @@ class BertForVLTasks(BertPreTrainedModel):
             print(sequence_output_v.size())
             print("attention_mask")
             print(attention_mask.size())
-            vil_prediction, attn_score = self.clfs_dict[task_id](sequence_output_t, sequence_output_v, attention_mask)
+            vil_prediction, attn_score = self.clfs_dict[task_id](sequence_output_t, sequence_output_v, attention_mask, image_attention_mask)
             print("vil_prediction")
             print(vil_prediction.size())
             print(vil_prediction[0].detach().cpu().numpy())
@@ -1289,7 +1286,7 @@ class AttnBasedClassifier(nn.Module):
         self.cos = nn.CosineSimilarity(dim=2, eps=1e-6)
         print("VL-contrast classifier built")
 
-    def forward(self, sequence_output_t, sequence_output_v, attn_mask_t):
+    def forward(self, sequence_output_t, sequence_output_v, attn_mask_t, attn_mask_v):
         """
         :param sequence_output_t: [batch, seq_len, t_hidden_size]
         :param sequence_output_v: [batch, v_seq_len, v_hidden_size]
@@ -1308,12 +1305,15 @@ class AttnBasedClassifier(nn.Module):
         t_context = torch.bmm(attn_score, sequence_output_t)  # [batch_size, 1, t_hidden_size]
         t_context = t_context.squeeze(1)  # [batch_size, t_hidden_size]
         attn_score = attn_score.squeeze(1)  # [batch_size, seq_len]
+
         # Compute similarity score between t_context and each region feature
         projected_text_attention_ctx = self.t_mlp(t_context)  # [batch_size, latent_size]
         projected_sequence_output_v = self.v_mlp(sequence_output_v)  # [batch_size, v_seq_len, latent_size]
         v_seq_len = projected_sequence_output_v.size(1)
         projected_text_attention_ctx = projected_text_attention_ctx.unsqueeze(1).expand(-1, v_seq_len, -1)  # [batch_size, v_seq_len, latent_size]
         sim_scores = self.cos(projected_text_attention_ctx, projected_sequence_output_v)  # [batch_size, v_seq_len]
+        # mask region
+        sim_scores = sim_scores + ((1.0 - attn_mask_v) * -10000.0).unsqueeze(2).to(dtype=sim_scores.dtype)
         return sim_scores, attn_score
 
 
