@@ -1263,7 +1263,7 @@ class BertForVLTasks(BertPreTrainedModel):
             vil_prediction, attn_score = self.clfs_dict[task_id](sequence_output_t, sequence_output_v, attention_mask)
             print("vil_prediction")
             print(vil_prediction.size())
-            print(vil_prediction[0].cpu().numpy())
+            print(vil_prediction[0].cpu().detach().numpy())
             print("attn_score")
             print(attn_score.size())
             exit()
