@@ -87,7 +87,7 @@ TASK19:
   features_h5path2: ''
   train_annotations_jsonpath: ''
   val_annotations_jsonpath: ''
-  max_seq_length: 100
+  max_seq_length: 80
   max_region_num: 36
   batch_size: 64
   eval_batch_size: 256
@@ -106,7 +106,7 @@ TASK20:
   features_h5path2: ''
   train_annotations_jsonpath: ''
   val_annotations_jsonpath: ''
-  max_seq_length: 100
+  max_seq_length: 80
   max_region_num: 36
   batch_size: 64
   eval_batch_size: 256
