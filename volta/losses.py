@@ -171,7 +171,7 @@ class InfoNCELoss(nn.Module):
         print("target")
         print(target.size())
         print(target[0].detach().cpu().numpy())
-        _prediction_log_softmax = masked_log_softmax(vil_prediction, attn_mask_v, dim=1, memory_efficient=True)  # [batch, v_seq_len]
+        _prediction_log_softmax = masked_log_softmax(vil_prediction, attn_mask_v, dim=1)  # [batch, v_seq_len]
         # select sum the matched instances, divided by the no. of matched instances
         match_all = vil_prediction [target > 0.5]
         print("match_all")

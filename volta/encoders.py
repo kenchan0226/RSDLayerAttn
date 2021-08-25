@@ -1298,9 +1298,9 @@ class AttnBasedClassifier(nn.Module):
         # Compute self attention over text
         attn_score_unnormalized = self.self_attn(sequence_output_t).squeeze(2)  # [batch, seq_len]
         attn_score = masked_softmax(attn_score_unnormalized, mask=attn_mask_t, dim=1)  # [batch, seq_len]
-        print("attn_score")
-        print(attn_score.size())
-        print(attn_score[0,:].detach().cpu().numpy())
+        #print("attn_score")
+        #print(attn_score.size())
+        #print(attn_score[0,:].detach().cpu().numpy())
         attn_score = attn_score.unsqueeze(1)  # [batch_size, 1, seq_len]
         t_context = torch.bmm(attn_score, sequence_output_t)  # [batch_size, 1, t_hidden_size]
         t_context = t_context.squeeze(1)  # [batch_size, t_hidden_size]
