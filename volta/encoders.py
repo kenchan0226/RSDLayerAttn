@@ -1291,7 +1291,8 @@ class AttnBasedClassifier(nn.Module):
         :param sequence_output_t: [batch, seq_len, t_hidden_size]
         :param sequence_output_v: [batch, v_seq_len, v_hidden_size]
         :param attn_mask_t: [batch, seq_len]
-        :return: sim_scores: [batch_size, v_seq_len], t_weights: [batch, seq_len]
+        :param attn_mask_v: [batch, v_seq_len]
+        :return: sim_scores: [batch_size, v_seq_len, 1], t_weights: [batch, seq_len]
         """
         # TODO: multiple positive
         # TODO: config clf hidden size
@@ -1313,7 +1314,7 @@ class AttnBasedClassifier(nn.Module):
         projected_text_attention_ctx = projected_text_attention_ctx.unsqueeze(1).expand(-1, v_seq_len, -1)  # [batch_size, v_seq_len, latent_size]
         sim_scores = self.cos(projected_text_attention_ctx, projected_sequence_output_v)  # [batch_size, v_seq_len]
         # mask region
-        sim_scores = sim_scores + ((1.0 - attn_mask_v) * -10000.0).unsqueeze(2).to(dtype=sim_scores.dtype)
+        sim_scores = sim_scores.unsqueeze(2) + ((1.0 - attn_mask_v) * -10000.0).unsqueeze(2).to(dtype=sim_scores.dtype)
         return sim_scores, attn_score
 
 
