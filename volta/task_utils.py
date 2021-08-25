@@ -246,8 +246,6 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
 
     vil_prediction, vision_prediction, linguisic_prediction, _ = model(question, features, spatials, task_id,
                                                                        segment_ids, input_mask, image_mask)
-    print("vil_prediction")
-    print(vil_prediction.size())
     # for different task, we use different output to calculate the loss.
     if task_cfg[task_id]["type"] == "VL-classifier":
         loss = criterion(vil_prediction, target)
@@ -269,12 +267,9 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         loss = criterion(vil_prediction, target)
         print("loss")
         print(loss.size())
-        print(loss[0].detach().cpu().numpy())
+        print(loss.item())
         loss = loss.mean() * target.size(1)
         print(loss.size())
-        print(loss[0].detach().cpu().numpy())
-        print("vil_prediction")
-        print(vil_prediction.size())
         exit()
         _, select_idx = torch.max(vil_prediction, dim=1)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
