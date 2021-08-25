@@ -1247,6 +1247,10 @@ class BertForVLTasks(BertPreTrainedModel):
         if self.task_cfg[task_id]["type"].startswith("V-logit"):
             vil_prediction = self.clfs_dict[task_id](self.dropout(sequence_output_v)) + (
                 (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
+            print("vil_prediction")
+            print(vil_prediction.size())
+            print(vil_prediction.detach().cpu().numpy())
+            exit()
         elif self.task_cfg[task_id]["type"] == "VL-binary-classifier":
             # NLVR
             vil_prediction = self.clfs_dict[task_id](pooled_output.view(-1, pooled_output.size(1) * 2))
