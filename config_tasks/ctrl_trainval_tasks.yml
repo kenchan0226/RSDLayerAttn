@@ -89,8 +89,8 @@ TASK19:
   val_annotations_jsonpath: ''
   max_seq_length: 80
   max_region_num: 36
-  batch_size: 256
-  eval_batch_size: 1024
+  batch_size: 64
+  eval_batch_size: 256
   train_split: train
   val_split: val
   lr: 0.0001
