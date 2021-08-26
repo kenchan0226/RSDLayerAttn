@@ -1294,8 +1294,8 @@ class AttnBasedClassifier(nn.Module):
             torch.nn.Dropout(dropout_prob),
             nn.Linear(t_hidden_size, latent_size)
         )
-        self.v_dropout = nn.Dropout(dropout_prob)
-        self.t_dropout = nn.Dropout(dropout_prob)
+        #self.v_dropout = nn.Dropout(dropout_prob)
+        #self.t_dropout = nn.Dropout(dropout_prob)
         self.cos = nn.CosineSimilarity(dim=2, eps=1e-6)
         print("VL-contrast classifier built")
 
@@ -1319,8 +1319,8 @@ class AttnBasedClassifier(nn.Module):
         attn_score = attn_score.squeeze(1)  # [batch_size, seq_len]
 
         # Compute similarity score between t_context and each region feature
-        projected_text_attention_ctx = self.t_mlp(self.t_dropout(t_context))  # [batch_size, latent_size]
-        projected_sequence_output_v = self.v_mlp(self.v_dropout(sequence_output_v))  # [batch_size, v_seq_len, latent_size]
+        projected_text_attention_ctx = self.t_mlp(t_context)  # [batch_size, latent_size]
+        projected_sequence_output_v = self.v_mlp(sequence_output_v)  # [batch_size, v_seq_len, latent_size]
         v_seq_len = projected_sequence_output_v.size(1)
         projected_text_attention_ctx = projected_text_attention_ctx.unsqueeze(1).expand(-1, v_seq_len, -1)  # [batch_size, v_seq_len, latent_size]
         sim_scores = self.cos(projected_text_attention_ctx, projected_sequence_output_v)  # [batch_size, v_seq_len]
