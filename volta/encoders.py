@@ -1280,9 +1280,8 @@ class AttnBasedClassifier(nn.Module):
     def __init__(self, t_hidden_size, v_hidden_size, latent_size, dropout_prob=0.1):
         super(AttnBasedClassifier, self).__init__()
         self.self_attn = nn.Linear(t_hidden_size, 1)
-        self.v_mlp = nn.Linear(v_hidden_size, latent_size)
-        self.t_mlp = nn.Linear(t_hidden_size, latent_size)
-        """
+        #self.v_mlp = nn.Linear(v_hidden_size, latent_size)
+        #self.t_mlp = nn.Linear(t_hidden_size, latent_size)
         self.v_mlp = torch.nn.Sequential(
             nn.Linear(v_hidden_size, v_hidden_size),
             GeLU(),
@@ -1295,7 +1294,6 @@ class AttnBasedClassifier(nn.Module):
             torch.nn.Dropout(dropout_prob),
             nn.Linear(t_hidden_size, latent_size)
         )
-        """
         self.cos = nn.CosineSimilarity(dim=2, eps=1e-6)
         print("VL-contrast classifier built")
 
