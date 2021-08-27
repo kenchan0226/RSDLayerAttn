@@ -658,6 +658,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         _, select_idx = torch.max(vil_prediction, dim=1)
         print("select_idx")
         print(select_idx[0].detach().cpu().numpy())
+        exit()
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
 
