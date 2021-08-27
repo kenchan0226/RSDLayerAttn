@@ -4,6 +4,8 @@ when running the script, you need to modify the size of the reference data set t
 and modify the name of the saved file and the name of the corresponding variable. """
 
 import json
+import argparse
+import os
 
 
 def save_json(save_path, data):
@@ -12,7 +14,7 @@ def save_json(save_path, data):
 
 
 def construct_token_mapping_for_val_set(data_root):
-    with open(data_root+'/talk2car_w_rpn_no_duplicates.json', encoding='utf-8') as f:
+    with open(os.path.join(data_root, 'talk2car_w_rpn_no_duplicates.json'), encoding='utf-8') as f:
         data = json.load(f)
         dataa = []
 
@@ -33,7 +35,7 @@ def construct_token_mapping_for_val_set(data_root):
 
 
 def construct_token_mapping_for_test_set(data_root):
-    with open(data_root+'/talk2car_w_rpn_no_duplicates.json', encoding='utf-8') as f:
+    with open(os.path.join(data_root, 'talk2car_w_rpn_no_duplicates.json'), encoding='utf-8') as f:
         data = json.load(f)
         dataa = []
 
@@ -54,6 +56,12 @@ def construct_token_mapping_for_test_set(data_root):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
 
-    construct_token_mapping_for_val_set(data_root)
-    construct_token_mapping_for_test_set(data_root)
+    # Model
+    parser.add_argument("--data_root", default="data/talk2car", type=str)
+
+    args = parser.parse_args()
+
+    construct_token_mapping_for_val_set(args.data_root)
+    construct_token_mapping_for_test_set(args.data_root)
