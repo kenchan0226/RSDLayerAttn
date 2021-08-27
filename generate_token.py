@@ -28,9 +28,8 @@ def construct_token_mapping_for_val_set(data_root):
             data_ = json.loads(json_data)
             dataa.append(data_)
 
-        save_json("./token_val.json", dataa)
+        save_json(os.path.join(data_root, "token_val.json"), dataa)
 
-        talk2car = {}
         f.close()
 
 
@@ -49,9 +48,8 @@ def construct_token_mapping_for_test_set(data_root):
             data_ = json.loads(json_data)
             dataa.append(data_)
 
-        save_json("./token_test.json", dataa)
+        save_json(os.path.join(data_root, "token_test.json"), dataa)
 
-        talk2car = {}
         f.close()
 
 
