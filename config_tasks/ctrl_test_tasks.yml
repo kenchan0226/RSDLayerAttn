@@ -102,3 +102,4 @@ TASK21:
   eval_batch_size: 512
   train_split: ''
   val_split: test
+  clf_latent_size: 128
