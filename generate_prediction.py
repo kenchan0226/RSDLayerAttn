@@ -35,7 +35,7 @@ def construct_prediction_json(data_root, result_path):
                 cnt += 1
                 prediction_dict[token] = bbox
 
-    with open('predictions_for_leaderboard.json', 'w') as f:
+    with open(os.path.join(result_path, 'predictions_for_leaderboard.json'), 'w') as f:
         json.dump(prediction_dict, f)
 
 
