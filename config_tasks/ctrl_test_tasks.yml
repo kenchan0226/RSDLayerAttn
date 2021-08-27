@@ -103,3 +103,5 @@ TASK21:
   train_split: ''
   val_split: test
   clf_latent_size: 128
+  temperature: 0.5
+  

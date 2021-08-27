@@ -643,6 +643,29 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
                 }
             )
 
+    elif task_cfg[task_id]["type"] == "VL-contrast":
+        loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
+        loss = loss.mean() * target.size(1)
+        _, select_idx = torch.max(vil_prediction, dim=1)
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
+
+        for i in range(select_idx.size(0)):
+            bbox_item = spatials_ori[i, select_idx[i],:4].cpu().detach().tolist()
+            bbox_item = bbox_item[0]
+            bbox.append(
+              {
+                question_id[i].item(): [bbox_item[0], bbox_item[1], bbox_item[2]-bbox_item[0], bbox_item[3]-bbox_item[1]]
+              }
+            )
+            results.append(
+                {
+                    "id": question_id[i].item(),
+                    "target": select_idx[i].item(),
+                    "IOU": select_target[i].item(),
+                }
+            )
+
     elif task_cfg[task_id]["type"] == "V-logit-mc":
         vision_logit = vil_prediction[:, 101:]  # FIXME from ViLBERT
         vision_logit = vision_logit.squeeze(2).gather(1, multi_choice_ids)
