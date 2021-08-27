@@ -645,6 +645,12 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
 
     elif task_cfg[task_id]["type"] == "VL-contrast":
         print("VL-contrast evaluation")
+        print("vil_prediction")
+        print(vil_prediction[0].detach().cpu().numpy())
+        print("target")
+        print(target[0].detach().cpu().numpy())
+        print("temperature")
+        print(task_cfg[task_id]["temperature"])
         loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
         loss = loss.mean() * target.size(1)
         _, select_idx = torch.max(vil_prediction, dim=1)

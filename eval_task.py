@@ -111,10 +111,8 @@ def main():
         # VL-BERT pooling for VQA
         config.fusion_method = task_cfg[task]["fusion_method"]
 
-    print("config")
-    print(task_cfg)
-    print()
-    print(config)
+    print("task id")
+    print(task_id)
 
     # Output dirs
     timeStamp = args.from_pretrained.split("/")[-1] + "-" + args.save_name
