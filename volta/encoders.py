@@ -1179,6 +1179,7 @@ class BertForVLTasks(BertPreTrainedModel):
             elif task_type == "VL-logit":
                 task2clf[task_id] = nn.Linear(config.pooler_size, 1)
             elif task_type.startswith("V-logit"):
+                print("VL-logit classifier")
                 if task_cfg[task_id].get("num_clf_layers", 1) == 2:
                     task2clf[task_id] = torch.nn.Sequential(
                         nn.Linear(config.v_hidden_size, config.v_hidden_size),
