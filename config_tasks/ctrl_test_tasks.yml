@@ -75,7 +75,7 @@ TASK19:
   process: normal
   task_id: 19
   dataroot: data/talk2car/annotations
-  features_h5path1: data/talk2car/resnet101_faster_rcnn_genome_imgfeats/volta/refcoco+_unc_dets36_feat.lmdb
+  features_h5path1: data/talk2car/resnet101_faster_rcnn_genome_imgfeats_centernet/volta/refcoco+_unc_dets36_feat.lmdb
   features_h5path2: ''
   train_annotations_jsonpath: ''
   val_annotations_jsonpath: ''
@@ -92,7 +92,7 @@ TASK21:
   process: normal
   task_id: 21
   dataroot: data/talk2car/annotations
-  features_h5path1: data/talk2car/resnet101_faster_rcnn_genome_imgfeats/volta/refcoco+_unc_dets36_feat.lmdb
+  features_h5path1: data/talk2car/resnet101_faster_rcnn_genome_imgfeats_centernet/volta/refcoco+_unc_dets36_feat.lmdb
   features_h5path2: ''
   train_annotations_jsonpath: ''
   val_annotations_jsonpath: ''
