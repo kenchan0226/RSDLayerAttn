@@ -356,7 +356,7 @@ class ReferExpressionSequenceLabelDataset(ReferExpressionDataset):
             refBox = self.refer.getRefBox(ref_id)
             for sent, sent_id in zip(ref["sentences"], ref["sent_ids"]):
                 caption = sent["raw"]
-                sequence_labels = sent["sequence_labels"]
+                sequence_labels = sent["pos_labels_simple"]
                 tokenized_sent = sent["spacy_tokenized_sent"]
                 entries.append(
                     {
