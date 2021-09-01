@@ -410,8 +410,12 @@ class ReferExpressionSequenceLabelDataset(ReferExpressionDataset):
                     label_ids.append(self.sequence_label_to_id[label[word_idx]])
                     #label_ids.append(label_to_id[label[word_idx]] if data_args.label_all_tokens else -100)
                 previous_word_idx = word_idx
-
+            print("label_ids")
+            print(label_ids)
             tokens = transformers_tokenized_sent["input_ids"]
+            print("tokens")
+            print(tokens)
+            exit()
 
             # truncate to max len
             tokens = [tokens[0]] + tokens[1:-1][: self._max_seq_length - 2] + [tokens[-1]]
