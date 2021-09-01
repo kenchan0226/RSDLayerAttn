@@ -381,6 +381,8 @@ class ReferExpressionSequenceLabelDataset(ReferExpressionDataset):
             # We use is_split_into_words because the texts in our dataset are lists of words (with a label for each word).
             transformers_tokenized_sent = self._tokenizer(entry["tokenized_sent"], padding=False, is_split_into_words=True)
             label = entry["sequence_labels"]
+            print("tokenized_sent")
+            print(entry["tokenized_sent"])
             print("label")
             print(label)
             # construct label ids
