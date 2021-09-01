@@ -347,7 +347,7 @@ class REFERTALK2CAR:
 
 		# load refs from data/dataset/refs(dataset).json
 		tic = time.time()
-		ref_file = osp.join(self.DATA_DIR, 'refs.p')
+		ref_file = osp.join(self.DATA_DIR, 'refs_spacy.p')
 		self.data = {}
 		self.data['dataset'] = dataset
 		self.data['refs'] = pickle.load(open(ref_file, 'rb'))

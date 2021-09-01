@@ -1192,6 +1192,11 @@ class BertForVLTasks(BertPreTrainedModel):
             elif task_type == "VL-contrast":
                 print("VL-contrast classifier")
                 task2clf[task_id] = AttnBasedClassifier(config.hidden_size, config.v_hidden_size, self.task_cfg[task_id]["clf_latent_size"], dropout_prob)
+            elif task_type == "VL-multi-task-contrast":
+                print("VL-contrast-multi-task classifiers")
+                task2clf[task_id] = {}
+                task2clf[task_id]["region_classifier"] = AttnBasedClassifier(config.hidden_size, config.v_hidden_size, self.task_cfg[task_id]["clf_latent_size"], dropout_prob)
+                task2clf[task_id]["token_classifier"] = nn.Linear(config.hidden_size, 1)
             else:
                 raise ValueError("Undefined task type: %s" % task_type)
 
@@ -1268,6 +1273,11 @@ class BertForVLTasks(BertPreTrainedModel):
             #print("attn_score")
             #print(attn_score.size())
             #exit()
+        elif self.task_cfg[task_id]["type"].startswith("VL-multi-task-contrast"):
+            region_prediction, attn_score = self.clfs_dict[task_id]["region_classifier"](input_txt, sequence_output_t, sequence_output_v,
+                                                                 attention_mask, image_attention_mask)
+            sequence_prediction = self.clfs_dict[task_id]["token_classifier"](sequence_output_t)
+            vil_prediction = (region_prediction, sequence_prediction)
         else:
             vil_prediction = self.clfs_dict[task_id](pooled_output)
 

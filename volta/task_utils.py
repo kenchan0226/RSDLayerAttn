@@ -24,7 +24,8 @@ logger = logging.getLogger(__name__)
 LossMap = {
     "BCEWithLogitLoss": nn.BCEWithLogitsLoss(reduction="mean"),
     "CrossEntropyLoss": nn.CrossEntropyLoss(),
-    "InfoNCELoss": InfoNCELoss()
+    "InfoNCELoss": InfoNCELoss(),
+    "InfoNCESequenceLabelLoss": {"region_classification": InfoNCELoss(), "sequence_labeling": nn.BCEWithLogitsLoss(reduction="mean")}
 }
 
 
@@ -33,8 +34,12 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
 
     if task_cfg[task_id]["type"] == "V-logit-mc":
         features, spatials, image_mask, question, target, input_mask, segment_ids, multi_choice_ids, question_id = batch
-    else:
+    elif task_cfg[task_id]["type"] == "VL-contrast":
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id = batch
+    elif task_cfg[task_id]["type"] == "VL-multi-task-contrast":
+        features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, sequence_labels_target = batch
+    else:
+        features, spatials, image_mask, question, target, input_mask, segment_ids, question_id = batch
 
     batch_size = features.size(0)
     if task_cfg[task_id]["process"] in ["dialog"]:
@@ -123,6 +128,20 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
 
+    elif task_cfg[task_id]["type"] == "VL-multi-task-contrast":
+        region_prediction, sequence_prediction = vil_prediction
+        region_classification_loss = criterion["region_classification"](region_prediction, target, image_mask, task_cfg[task_id]["temperature"])
+        sequence_labeling_loss = criterion["sequence_labeling"](sequence_prediction, sequence_labels_target)
+        loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id]["sequence_loss_weight"] * sequence_labeling_loss
+
+        #loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
+        #print(loss)
+        #exit()
+        #loss = loss.mean() * target.size(1)
+        _, select_idx = torch.max(vil_prediction, dim=1)
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
+
     elif task_cfg[task_id]["type"] == "V-logit-mc":
         vision_logit = vil_prediction[:, 101:]  # FIXME from ViLBERT
         vision_logit = vision_logit.squeeze(2).gather(1, multi_choice_ids)
@@ -151,8 +170,12 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
 
     if task_cfg[task_id]["type"] == "V-logit-mc":
         features, spatials, image_mask, question, target, input_mask, segment_ids, multi_choice_ids, question_id = batch
-    else:
+    elif task_cfg[task_id]["type"] == "VL-contrast":
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id = batch
+    elif task_cfg[task_id]["type"] == "VL-multi-task-contrast":
+        features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, sequence_labels_target = batch
+    else:
+        features, spatials, image_mask, question, target, input_mask, segment_ids, question_id = batch
 
     batch_size = features.size(0)
     if task_cfg[task_id]["process"] in ["dialog"]:
@@ -268,6 +291,34 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
 
     elif task_cfg[task_id]["type"] == "VL-contrast":
         loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
+        #print(loss)
+        #exit()
+        #loss = loss.mean() * target.size(1)
+        _, select_idx = torch.max(vil_prediction, dim=1)
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
+
+    elif task_cfg[task_id]["type"] == "VL-multi-task-contrast":
+        region_prediction, sequence_prediction = vil_prediction
+        region_classification_loss = criterion["region_classification"](region_prediction, target, image_mask, task_cfg[task_id]["temperature"])
+        print("region_classification_loss")
+        print(region_classification_loss)
+        print("sequence_prediction")
+        print(sequence_prediction.size())
+        print("sequence_labels_target")
+        print(sequence_labels_target.size())
+        print(sequence_labels_target[0].detach().cpu().numpy())
+        print(sequence_labels_target[1].detach().cpu().numpy())
+        print(sequence_labels_target[2].detach().cpu().numpy())
+        sequence_labeling_loss = criterion["sequence_labeling"](sequence_prediction, sequence_labels_target)
+        print("sequence_labeling_loss")
+        print(sequence_labeling_loss)
+
+        loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id]["sequence_loss_weight"] * sequence_labeling_loss
+        print("loss")
+        print(loss)
+        exit()
+        #loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
         #print(loss)
         #exit()
         #loss = loss.mean() * target.size(1)
@@ -469,8 +520,12 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
 
     if task_cfg[task_id]["type"] == "V-logit-mc":
         features, spatials, image_mask, question, target, input_mask, segment_ids, multi_choice_ids, question_id = batch
-    else:
+    elif task_cfg[task_id]["type"] == "VL-contrast":
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id = batch
+    elif task_cfg[task_id]["type"] == "VL-multi-task-contrast":
+        features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, sequence_labels_target = batch
+    else:
+        features, spatials, image_mask, question, target, input_mask, segment_ids, question_id = batch
 
     batch_size = features.size(0)
 
@@ -623,6 +678,38 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         #print("spatials_ori")
         #print(spatials_ori[select_idx[0],:4])
         #exit()
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
+
+        for i in range(select_idx.size(0)):
+            bbox_item = spatials_ori[i, select_idx[i],:4].cpu().detach().tolist()
+            bbox_item = bbox_item[0]
+            bbox.append(
+              {
+                question_id[i].item(): [bbox_item[0], bbox_item[1], bbox_item[2]-bbox_item[0], bbox_item[3]-bbox_item[1]]
+                #question_id[i].item(): spatials_ori[i, select_idx[i],:4].cpu().detach().tolist()
+              }
+            )
+            results.append(
+                {
+                    "id": question_id[i].item(),
+                    "target": select_idx[i].item(),
+                    "IOU": select_target[i].item(),
+                }
+            )
+
+    elif task_cfg[task_id]["type"] == "VL-multi-task-contrast":
+        #loss = criterion(vil_prediction, target)
+
+        region_prediction, sequence_prediction = vil_prediction
+        region_classification_loss = criterion["region_classification"](region_prediction, target, image_mask,
+                                                                        task_cfg[task_id]["temperature"])
+        sequence_labeling_loss = criterion["sequence_labeling"](sequence_prediction, sequence_labels_target)
+        loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
+            "sequence_loss_weight"] * sequence_labeling_loss
+
+        loss = loss.mean() * target.size(1)
+        _, select_idx = torch.max(vil_prediction, dim=1)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
 
