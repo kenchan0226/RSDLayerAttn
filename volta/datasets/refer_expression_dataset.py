@@ -85,7 +85,7 @@ class ReferExpressionDataset(Dataset):
 
         if task == "refcocog":
             self.refer = REFER(dataroot, dataset=task, splitBy="umd")
-        elif task == "talk2car":
+        elif task == "talk2car" or task == "talk2carSeqLabel":
             print("using talk2car REFER data loader")
             self.refer = REFERTALK2CAR(dataroot, dataset=task)
         else:

@@ -342,7 +342,7 @@ class REFERTALK2CAR:
 		print('loading dataset %s into memory...' % dataset)
 		self.ROOT_DIR = osp.abspath(osp.dirname(__file__))
 		self.DATA_DIR = osp.join(data_root, dataset)
-		assert dataset == 'talk2car'
+		#assert dataset == 'talk2car'
 		self.IMAGE_DIR = osp.join(data_root, 'images/talk2car/images/')
 
 		# load refs from data/dataset/refs(dataset).json
