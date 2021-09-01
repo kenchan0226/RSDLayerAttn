@@ -322,17 +322,20 @@ class ReferExpressionSequenceLabelDataset(ReferExpressionDataset):
         add_global_imgfeat=None,
         append_mask_sep=False,
     ):
-        super(ReferExpressionSequenceLabelDataset, self).__init__(task, dataroot, annotations_jsonpath, split,
-                                                            image_features_reader, gt_image_features_reader, tokenizer,
-                                                            bert_model, padding_index, max_seq_length, max_region_num,
-                                                            num_locs, add_global_imgfeat, append_mask_sep)
+
         self.sequence_label_to_id = defaultdict(int)  # the default value is 0
         self.sequence_label_to_id["PROPN"] = 1
         self.sequence_label_to_id["NOUN"] = 1
         self.sequence_label_to_id["ADJ"] = 1
-        #self.sequence_label_to_id["DET"] = 1
+        # self.sequence_label_to_id["DET"] = 1
         self.sequence_label_to_id["ADP"] = 1
         # PROPN, NOUN, ADJ, ADV, DET, ADP
+
+        super(ReferExpressionSequenceLabelDataset, self).__init__(task, dataroot, annotations_jsonpath, split,
+                                                            image_features_reader, gt_image_features_reader, tokenizer,
+                                                            bert_model, padding_index, max_seq_length, max_region_num,
+                                                            num_locs, add_global_imgfeat, append_mask_sep)
+
         print("ReferExpressionSequenceLabelDataset built")
 
     def _load_annotations(self):
