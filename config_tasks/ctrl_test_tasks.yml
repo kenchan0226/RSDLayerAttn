@@ -104,3 +104,22 @@ TASK21:
   val_split: test
   clf_latent_size: 128
   temperature: 0.5
+TASK26:
+  name: talk2car
+  type: VL-contrast
+  loss: InfoNCELoss
+  process: normal
+  task_id: 26
+  dataroot: data/talk2car/annotations
+  features_h5path1: data/talk2car/resnet101_faster_rcnn_genome_imgfeats_centernet/volta/refcoco+_unc_dets36_feat.lmdb
+  features_h5path2: ''
+  train_annotations_jsonpath: ''
+  val_annotations_jsonpath: ''
+  max_seq_length: 80
+  max_region_num: 36
+  batch_size: 32
+  eval_batch_size: 512
+  train_split: ''
+  val_split: test
+  clf_latent_size: 128
+  temperature: 0.5
