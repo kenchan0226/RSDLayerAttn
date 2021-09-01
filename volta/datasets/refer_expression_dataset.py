@@ -327,7 +327,7 @@ class ReferExpressionSequenceLabelDataset(ReferExpressionDataset):
         self.sequence_label_to_id["PROPN"] = 1
         self.sequence_label_to_id["NOUN"] = 1
         self.sequence_label_to_id["ADJ"] = 1
-        # self.sequence_label_to_id["DET"] = 1
+        self.sequence_label_to_id["DET"] = 1
         self.sequence_label_to_id["ADP"] = 1
         # PROPN, NOUN, ADJ, ADV, DET, ADP
 
@@ -381,19 +381,20 @@ class ReferExpressionSequenceLabelDataset(ReferExpressionDataset):
             # We use is_split_into_words because the texts in our dataset are lists of words (with a label for each word).
             transformers_tokenized_sent = self._tokenizer(entry["tokenized_sent"], padding=False, is_split_into_words=True)
             label = entry["sequence_labels"]
-            print("raw")
-            print(entry["caption"])
-            print("tokenized_sent")
-            print(entry["tokenized_sent"])
-            print("label")
-            print(label)
+            assert len(entry["tokenized_sent"]) == len(entry["sequence_labels"])
+            #print("raw")
+            #print(entry["caption"])
+            #print("tokenized_sent")
+            #print(entry["tokenized_sent"])
+            #print("label")
+            #print(label)
             # construct label ids
             # Adapted from Huggingface Transformers
             word_ids = transformers_tokenized_sent.word_ids()
-            print("word_ids")
-            print(word_ids)
-            print("tokens")
-            print(transformers_tokenized_sent["input_ids"])
+            #print("word_ids")
+            #print(word_ids)
+            #print("tokens")
+            #print(transformers_tokenized_sent["input_ids"])
             previous_word_idx = None
             label_ids = []
             for word_idx in word_ids:
@@ -410,12 +411,12 @@ class ReferExpressionSequenceLabelDataset(ReferExpressionDataset):
                     label_ids.append(self.sequence_label_to_id[label[word_idx]])
                     #label_ids.append(label_to_id[label[word_idx]] if data_args.label_all_tokens else -100)
                 previous_word_idx = word_idx
-            print("label_ids")
-            print(label_ids)
+            #print("label_ids")
+            #print(label_ids)
             tokens = transformers_tokenized_sent["input_ids"]
-            print("tokens")
-            print(tokens)
-            exit()
+            #print("tokens")
+            #print(tokens)
+            #exit()
 
             # truncate to max len
             tokens = [tokens[0]] + tokens[1:-1][: self._max_seq_length - 2] + [tokens[-1]]
