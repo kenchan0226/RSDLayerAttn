@@ -25,7 +25,8 @@ LossMap = {
     "BCEWithLogitLoss": nn.BCEWithLogitsLoss(reduction="mean"),
     "CrossEntropyLoss": nn.CrossEntropyLoss(),
     "InfoNCELoss": InfoNCELoss(),
-    "InfoNCESequenceLabelLoss": {"region_classification": InfoNCELoss(), "sequence_labeling": nn.BCEWithLogitsLoss(reduction="mean")}
+    "InfoNCESequenceLabelLoss": {"region_classification": InfoNCELoss(), "sequence_labeling": nn.BCEWithLogitsLoss(reduction="mean")},
+    "BCESequenceLabelLoss": {"region_classification": InfoNCELoss(), "sequence_labeling": nn.BCEWithLogitsLoss(reduction="mean")}
 }
 
 
@@ -117,6 +118,19 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         loss = criterion(vil_prediction, target)
         loss = loss.mean() * target.size(1)
         _, select_idx = torch.max(vil_prediction, dim=1)
+        #print(select_idx)
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
+
+    elif task_cfg[task_id]["type"] == "VL-multi-task":
+        region_prediction, sequence_prediction = vil_prediction
+        region_classification_loss = criterion["region_classification"](region_prediction, target)
+        sequence_labeling_loss = criterion["sequence_labeling"](sequence_prediction, sequence_labels_target)
+        loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
+            "sequence_loss_weight"] * sequence_labeling_loss
+        #loss = loss.mean() * target.size(1)
+
+        _, select_idx = torch.max(region_prediction, dim=1)
         #print(select_idx)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
@@ -284,10 +298,30 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
 
     elif task_cfg[task_id]["type"] == "V-logit":
         loss = criterion(vil_prediction, target)
+        print("loss")
+        print(loss.size())
         loss = loss.mean() * target.size(1)
+        print("target")
+        print(target.size())
+        print("batch")
+        print(batch_size)
+        exit()
         _, select_idx = torch.max(vil_prediction, dim=1)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = float(torch.sum(select_target > 0.5)) / batch_size
+
+    elif task_cfg[task_id]["type"] == "VL-multi-task":
+        region_prediction, sequence_prediction = vil_prediction
+        region_classification_loss = criterion["region_classification"](region_prediction, target)
+        sequence_labeling_loss = criterion["sequence_labeling"](sequence_prediction, sequence_labels_target)
+        loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
+            "sequence_loss_weight"] * sequence_labeling_loss
+        #loss = loss.mean() * target.size(1)
+
+        _, select_idx = torch.max(region_prediction, dim=1)
+        #print(select_idx)
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
 
     elif task_cfg[task_id]["type"] == "VL-contrast":
         loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
@@ -680,6 +714,36 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
                 {
                     "question_id": question_id[i].item(),
                     "answer": [prob.item() for prob in probs[i]],
+                }
+            )
+
+    elif task_cfg[task_id]["type"] == "VL-multi-task":
+        region_prediction, sequence_prediction = vil_prediction
+        region_classification_loss = criterion["region_classification"](region_prediction, target)
+        sequence_labeling_loss = criterion["sequence_labeling"](sequence_prediction, sequence_labels_target)
+        loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
+            "sequence_loss_weight"] * sequence_labeling_loss
+        #loss = loss.mean() * target.size(1)
+
+        _, select_idx = torch.max(region_prediction, dim=1)
+        #print(select_idx)
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
+
+        for i in range(select_idx.size(0)):
+            bbox_item = spatials_ori[i, select_idx[i],:4].cpu().detach().tolist()
+            bbox_item = bbox_item[0]
+            bbox.append(
+              {
+                question_id[i].item(): [bbox_item[0], bbox_item[1], bbox_item[2]-bbox_item[0], bbox_item[3]-bbox_item[1]]
+                #question_id[i].item(): spatials_ori[i, select_idx[i],:4].cpu().detach().tolist()
+              }
+            )
+            results.append(
+                {
+                    "id": question_id[i].item(),
+                    "target": select_idx[i].item(),
+                    "IOU": select_target[i].item(),
                 }
             )
 
