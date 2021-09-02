@@ -37,7 +37,7 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         features, spatials, image_mask, question, target, input_mask, segment_ids, multi_choice_ids, question_id = batch
     elif task_cfg[task_id]["type"] == "VL-contrast" or task_cfg[task_id]["type"] == "V-logit":
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id = batch
-    elif task_cfg[task_id]["type"] == "VL-multi-task-contrast":
+    elif task_cfg[task_id]["type"].startswith("VL-multi-task"):
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, sequence_labels_target = batch
     else:
         features, spatials, image_mask, question, target, input_mask, segment_ids, question_id = batch
@@ -187,7 +187,7 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         features, spatials, image_mask, question, target, input_mask, segment_ids, multi_choice_ids, question_id = batch
     elif task_cfg[task_id]["type"] == "VL-contrast" or task_cfg[task_id]["type"] == "V-logit":
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id = batch
-    elif task_cfg[task_id]["type"] == "VL-multi-task-contrast":
+    elif task_cfg[task_id]["type"].startswith("VL-multi-task"):
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, sequence_labels_target = batch
     else:
         features, spatials, image_mask, question, target, input_mask, segment_ids, question_id = batch
@@ -580,7 +580,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         features, spatials, image_mask, question, target, input_mask, segment_ids, multi_choice_ids, question_id = batch
     elif task_cfg[task_id]["type"] == "VL-contrast" or task_cfg[task_id]["type"] == "V-logit":
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id = batch
-    elif task_cfg[task_id]["type"] == "VL-multi-task-contrast":
+    elif task_cfg[task_id]["type"].startswith("VL-multi-task"):
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, sequence_labels_target = batch
     else:
         features, spatials, image_mask, question, target, input_mask, segment_ids, question_id = batch
