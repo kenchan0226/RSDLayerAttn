@@ -35,7 +35,7 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
 
     if task_cfg[task_id]["type"] == "V-logit-mc":
         features, spatials, image_mask, question, target, input_mask, segment_ids, multi_choice_ids, question_id = batch
-    elif task_cfg[task_id]["type"] == "VL-contrast" or task_cfg[task_id]["type"] == "V-logit":
+    elif task_cfg[task_id]["type"] == "VL-contrast" or task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id]["type"] == "VL-keywordmlp":
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id = batch
     elif task_cfg[task_id]["type"].startswith("VL-multi-task"):
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, sequence_labels_target = batch
@@ -114,7 +114,7 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         _, preds = torch.max(vil_logit, 1)
         batch_score = (preds == target).sum()
 
-    elif task_cfg[task_id]["type"] == "V-logit":
+    elif task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id]["type"] == "VL-keywordmlp":
         loss = criterion(vil_prediction, target)
         loss = loss.mean() * target.size(1)
         _, select_idx = torch.max(vil_prediction, dim=1)
@@ -188,7 +188,8 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
 
     if task_cfg[task_id]["type"] == "V-logit-mc":
         features, spatials, image_mask, question, target, input_mask, segment_ids, multi_choice_ids, question_id = batch
-    elif task_cfg[task_id]["type"] == "VL-contrast" or task_cfg[task_id]["type"] == "V-logit":
+    elif task_cfg[task_id]["type"] == "VL-contrast" or task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id][
+            "type"] == "VL-keywordmlp":
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id = batch
     elif task_cfg[task_id]["type"].startswith("VL-multi-task"):
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, sequence_labels_target = batch
@@ -300,7 +301,7 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         _, preds = torch.max(vil_logit, 1)
         batch_score = float((preds == target).sum()) / float(batch_size)
 
-    elif task_cfg[task_id]["type"] == "V-logit":
+    elif task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id]["type"] == "VL-keywordmlp":
         loss = criterion(vil_prediction, target)
         loss = loss.mean() * target.size(1)
         _, select_idx = torch.max(vil_prediction, dim=1)
@@ -585,7 +586,8 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
 
     if task_cfg[task_id]["type"] == "V-logit-mc":
         features, spatials, image_mask, question, target, input_mask, segment_ids, multi_choice_ids, question_id = batch
-    elif task_cfg[task_id]["type"] == "VL-contrast" or task_cfg[task_id]["type"] == "V-logit":
+    elif task_cfg[task_id]["type"] == "VL-contrast" or task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id][
+            "type"] == "VL-keywordmlp":
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id = batch
     elif task_cfg[task_id]["type"].startswith("VL-multi-task"):
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, sequence_labels_target = batch
@@ -756,7 +758,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
                 }
             )
 
-    elif task_cfg[task_id]["type"] == "V-logit":
+    elif task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id]["type"] == "VL-keywordmlp":
         loss = criterion(vil_prediction, target)
         loss = loss.mean() * target.size(1)
         #print()

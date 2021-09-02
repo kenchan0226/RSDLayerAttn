@@ -299,7 +299,7 @@ def main():
                     save(save_path, logger, epoch_id, model, optimizer, scheduler,
                          global_step, tb_logger, default_gpu, max_score, is_best=True)
 
-        logger.info('max validation score: {}'.format(max_score * 100))
+        logger.info('max validation score: {.2f}'.format(max_score * 100))
 
         save(save_path, logger, epoch_id, model, optimizer, scheduler, global_step, tb_logger, default_gpu, max_score)
 
