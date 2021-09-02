@@ -1194,9 +1194,17 @@ class BertForVLTasks(BertPreTrainedModel):
                 task2clf[task_id] = AttnBasedClassifier(config.hidden_size, config.v_hidden_size, self.task_cfg[task_id]["clf_latent_size"], dropout_prob)
             elif task_type == "VL-multi-task-contrast":
                 print("VL-contrast-multi-task classifiers")
-                #task2clf[task_id] = {}
                 task2clf[str(task_id)+"region_classifier"] = AttnBasedClassifier(config.hidden_size, config.v_hidden_size, self.task_cfg[task_id]["clf_latent_size"], dropout_prob)
-                task2clf[str(task_id)+"token_classifier"] = nn.Linear(config.hidden_size, 1)
+                # token classifier
+                if task_cfg[task_id].get("num_token_clf_layers", 1) == 2:
+                    task2clf[str(task_id)+"token_classifier"] = torch.nn.Sequential(
+                        nn.Linear(config.hidden_size, config.hidden_size),
+                        GeLU(),
+                        torch.nn.Dropout(config.v_attention_probs_dropout_prob, inplace=False),
+                        nn.Linear(config.hidden_size, 1)
+                    )
+                else:
+                    task2clf[str(task_id)+"token_classifier"] = nn.Linear(config.hidden_size, 1)
             else:
                 raise ValueError("Undefined task type: %s" % task_type)
 

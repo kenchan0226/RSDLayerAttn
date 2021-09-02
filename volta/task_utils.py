@@ -326,6 +326,9 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
 
+        # compute score for sequence_labeling:
+
+
     elif task_cfg[task_id]["type"] == "V-logit-mc":
         vision_logit = vil_prediction[:, 101:]  # FIXME from ViLBERT
         vision_logit = vision_logit.squeeze(2).gather(1, multi_choice_ids)
@@ -514,7 +517,7 @@ def compute_score_with_logits(logits, labels):
     scores = one_hots * labels
     return scores
 
-def  compute_binary_sequence_label_score_with_logits(logits, labels):
+def compute_binary_sequence_label_score_with_logits(logits, labels):
     """
     :param logits: [batch, seq_len, 1]
     :param labels: [batch, seq_len, 1]
