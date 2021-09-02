@@ -327,7 +327,7 @@ class ReferExpressionSequenceLabelDataset(ReferExpressionDataset):
         self.sequence_label_to_id["PROPN"] = 1
         self.sequence_label_to_id["NOUN"] = 1
         self.sequence_label_to_id["ADJ"] = 1
-        self.sequence_label_to_id["DET"] = 1
+        #self.sequence_label_to_id["DET"] = 1
         self.sequence_label_to_id["ADP"] = 1
         # PROPN, NOUN, ADJ, ADV, DET, ADP
 
