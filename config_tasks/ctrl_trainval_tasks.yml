@@ -301,8 +301,8 @@ TASK29:
   num_epoch: 20
   clf_latent_size: 128
   temperature: 0.5
-  region_loss_weight: 0.5
-  sequence_loss_weight: 0.5
+  region_loss_weight: 0.9
+  sequence_loss_weight: 0.1
   num_token_clf_layers: 1
 TASK30:
   name: talk2carSeqLabel
