@@ -307,15 +307,15 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
     elif task_cfg[task_id]["type"] == "VL-multi-task":
         region_prediction, sequence_prediction = vil_prediction
         region_classification_loss = criterion["region_classification"](region_prediction, target)
-        print("region_classification_loss")
-        print(region_classification_loss)
+        #print("region_classification_loss")
+        #print(region_classification_loss)
         region_classification_loss = region_classification_loss.mean() * target.size(1)
-        print("region_classification_loss")
-        print(region_classification_loss)
+        #print("region_classification_loss")
+        #print(region_classification_loss)
         sequence_labeling_loss = criterion["sequence_labeling"](sequence_prediction, sequence_labels_target)
-        print("sequence_labeling_loss")
-        print(sequence_labeling_loss)
-        exit()
+        #print("sequence_labeling_loss")
+        #print(sequence_labeling_loss)
+        #exit()
         loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
             "sequence_loss_weight"] * sequence_labeling_loss
 
