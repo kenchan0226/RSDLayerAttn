@@ -528,7 +528,7 @@ class ReferExpressionSequenceLabelDataset(ReferExpressionDataset):
         caption = entry["token"]
         input_mask = entry["input_mask"]
         segment_ids = entry["segment_ids"]
-        sequence_labels = entry["sequence_label_ids"].unsqueeze(1)
+        sequence_labels = entry["sequence_label_ids"].float().unsqueeze(1)
 
         # print("spatials")
         # print(spatials[1,:4])
