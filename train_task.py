@@ -196,6 +196,7 @@ def main():
     # Optimization details
     freeze_layers(model)
     criterion = LoadLoss(task_cfg, args.task)
+    print(criterion)
     no_decay = ["bias", "LayerNorm.bias", "LayerNorm.weight"]
     optimizer_grouped_parameters = []
     for key, value in dict(model.named_parameters()).items():
