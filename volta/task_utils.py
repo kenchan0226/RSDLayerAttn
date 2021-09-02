@@ -184,7 +184,7 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
 
     if task_cfg[task_id]["type"] == "V-logit-mc":
         features, spatials, image_mask, question, target, input_mask, segment_ids, multi_choice_ids, question_id = batch
-    elif task_cfg[task_id]["type"] == "VL-contrast":
+    elif task_cfg[task_id]["type"] == "VL-contrast" or "V-logit":
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id = batch
     elif task_cfg[task_id]["type"] == "VL-multi-task-contrast":
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, sequence_labels_target = batch
