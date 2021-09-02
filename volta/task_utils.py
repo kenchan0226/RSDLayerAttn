@@ -26,7 +26,7 @@ LossMap = {
     "CrossEntropyLoss": nn.CrossEntropyLoss(),
     "InfoNCELoss": InfoNCELoss(),
     "InfoNCESequenceLabelLoss": {"region_classification": InfoNCELoss(), "sequence_labeling": nn.BCEWithLogitsLoss(reduction="mean")},
-    "BCESequenceLabelLoss": {"region_classification": InfoNCELoss(), "sequence_labeling": nn.BCEWithLogitsLoss(reduction="mean")}
+    "BCESequenceLabelLoss": {"region_classification": nn.BCEWithLogitsLoss(reduction="mean"), "sequence_labeling": nn.BCEWithLogitsLoss(reduction="mean")}
 }
 
 
@@ -35,7 +35,7 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
 
     if task_cfg[task_id]["type"] == "V-logit-mc":
         features, spatials, image_mask, question, target, input_mask, segment_ids, multi_choice_ids, question_id = batch
-    elif task_cfg[task_id]["type"] == "VL-contrast":
+    elif task_cfg[task_id]["type"] == "VL-contrast" or task_cfg[task_id]["type"] == "V-logit":
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id = batch
     elif task_cfg[task_id]["type"] == "VL-multi-task-contrast":
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, sequence_labels_target = batch
@@ -125,6 +125,7 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
     elif task_cfg[task_id]["type"] == "VL-multi-task":
         region_prediction, sequence_prediction = vil_prediction
         region_classification_loss = criterion["region_classification"](region_prediction, target)
+        region_classification_loss = region_classification_loss.mean() * target.size(1)
         sequence_labeling_loss = criterion["sequence_labeling"](sequence_prediction, sequence_labels_target)
         loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
             "sequence_loss_weight"] * sequence_labeling_loss
@@ -184,7 +185,7 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
 
     if task_cfg[task_id]["type"] == "V-logit-mc":
         features, spatials, image_mask, question, target, input_mask, segment_ids, multi_choice_ids, question_id = batch
-    elif task_cfg[task_id]["type"] == "VL-contrast" or "V-logit":
+    elif task_cfg[task_id]["type"] == "VL-contrast" or task_cfg[task_id]["type"] == "V-logit":
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id = batch
     elif task_cfg[task_id]["type"] == "VL-multi-task-contrast":
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, sequence_labels_target = batch
@@ -298,14 +299,7 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
 
     elif task_cfg[task_id]["type"] == "V-logit":
         loss = criterion(vil_prediction, target)
-        print("loss")
-        print(loss.size())
         loss = loss.mean() * target.size(1)
-        print("target")
-        print(target.size())
-        print("batch")
-        print(batch_size)
-        exit()
         _, select_idx = torch.max(vil_prediction, dim=1)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = float(torch.sum(select_target > 0.5)) / batch_size
@@ -313,10 +307,17 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
     elif task_cfg[task_id]["type"] == "VL-multi-task":
         region_prediction, sequence_prediction = vil_prediction
         region_classification_loss = criterion["region_classification"](region_prediction, target)
+        print("region_classification_loss")
+        print(region_classification_loss)
+        region_classification_loss = region_classification_loss.mean() * target.size(1)
+        print("region_classification_loss")
+        print(region_classification_loss)
         sequence_labeling_loss = criterion["sequence_labeling"](sequence_prediction, sequence_labels_target)
+        print("sequence_labeling_loss")
+        print(sequence_labeling_loss)
+        exit()
         loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
             "sequence_loss_weight"] * sequence_labeling_loss
-        #loss = loss.mean() * target.size(1)
 
         _, select_idx = torch.max(region_prediction, dim=1)
         #print(select_idx)
@@ -347,6 +348,7 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         sequence_labeling_loss = criterion["sequence_labeling"](sequence_prediction, sequence_labels_target)
         #print("sequence_labeling_loss")
         #print(sequence_labeling_loss)
+
 
         loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id]["sequence_loss_weight"] * sequence_labeling_loss
         #print("loss")
@@ -576,7 +578,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
 
     if task_cfg[task_id]["type"] == "V-logit-mc":
         features, spatials, image_mask, question, target, input_mask, segment_ids, multi_choice_ids, question_id = batch
-    elif task_cfg[task_id]["type"] == "VL-contrast":
+    elif task_cfg[task_id]["type"] == "VL-contrast" or task_cfg[task_id]["type"] == "V-logit":
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id = batch
     elif task_cfg[task_id]["type"] == "VL-multi-task-contrast":
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, sequence_labels_target = batch
@@ -720,10 +722,10 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
     elif task_cfg[task_id]["type"] == "VL-multi-task":
         region_prediction, sequence_prediction = vil_prediction
         region_classification_loss = criterion["region_classification"](region_prediction, target)
+        region_classification_loss = region_classification_loss.mean() * target.size(1)
         sequence_labeling_loss = criterion["sequence_labeling"](sequence_prediction, sequence_labels_target)
         loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
             "sequence_loss_weight"] * sequence_labeling_loss
-        #loss = loss.mean() * target.size(1)
 
         _, select_idx = torch.max(region_prediction, dim=1)
         #print(select_idx)
