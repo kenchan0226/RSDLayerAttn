@@ -1214,11 +1214,11 @@ class BertForVLTasks(BertPreTrainedModel):
 
             elif task_type == "VL-contrast":
                 print("VL-contrast classifier")
-                task2clf[task_id] = AttnBasedClassifier(config.hidden_size, config.v_hidden_size, self.task_cfg[task_id]["clf_latent_size"], dropout_prob)
+                task2clf[task_id] = AttnBasedContrastiveClassifier(config.hidden_size, config.v_hidden_size, self.task_cfg[task_id]["clf_latent_size"], dropout_prob)
             elif task_type == "VL-multi-task-contrast":
                 print("VL-contrast-multi-task classifiers")
                 # region classifier
-                task2clf[str(task_id)+"region_classifier"] = AttnBasedClassifier(config.hidden_size, config.v_hidden_size, self.task_cfg[task_id]["clf_latent_size"], dropout_prob)
+                task2clf[str(task_id)+"region_classifier"] = AttnBasedContrastiveClassifier(config.hidden_size, config.v_hidden_size, self.task_cfg[task_id]["clf_latent_size"], dropout_prob)
                 # token classifier
                 if task_cfg[task_id].get("num_token_clf_layers", 1) == 2:
                     task2clf[str(task_id)+"token_classifier"] = torch.nn.Sequential(
@@ -1429,6 +1429,101 @@ class Attention(nn.Module):
         assert context.size() == torch.Size([batch_size, memory_bank_size])
 
         return context, attn_dist
+
+
+class AttnBasedContrastiveClassifier(nn.Module):
+    def __init__(self, t_hidden_size, v_hidden_size, latent_size, dropout_prob=0.1):
+        super(AttnBasedContrastiveClassifier, self).__init__()
+        self.self_attn = nn.Linear(t_hidden_size, 1)
+        #self.self_attn = MLPResidual(t_hidden_size, 1, dropout_prob)
+        #self.self_attn = Attention(t_hidden_size, t_hidden_size, attn_mode="concat")
+        """
+        self.self_attn = torch.nn.Sequential(
+            nn.Linear(t_hidden_size, t_hidden_size),
+            GeLU(),
+            torch.nn.Dropout(dropout_prob),
+            nn.Linear(t_hidden_size, 1)
+        )
+        """
+        #self.self_attn = SimpleSelfAttention(t_hidden_size, dropout_prob)
+        #self.v_mlp = nn.Linear(v_hidden_size, latent_size)
+        #self.t_mlp = nn.Linear(t_hidden_size, latent_size)
+        self.v_mlp = torch.nn.Sequential(
+            nn.Linear(v_hidden_size, v_hidden_size),
+            GeLU(),
+            torch.nn.Dropout(dropout_prob),
+            nn.Linear(v_hidden_size, latent_size)
+        )
+        self.t_mlp = torch.nn.Sequential(
+            nn.Linear(t_hidden_size, t_hidden_size),
+            GeLU(),
+            torch.nn.Dropout(dropout_prob),
+            nn.Linear(t_hidden_size, latent_size)
+        )
+        #self.v_mlp = MLPResidual(v_hidden_size, latent_size, dropout_prob)
+        #self.t_mlp = MLPResidual(t_hidden_size, latent_size, dropout_prob)
+        #self.v_dropout = nn.Dropout(dropout_prob)
+        #self.t_dropout = nn.Dropout(dropout_prob)
+        self.cos = nn.CosineSimilarity(dim=2, eps=1e-6)
+        print("VL-contrast classifier built")
+
+    def compute_text_attentive_feature(self, input_txt, sequence_output_t, attn_mask_t):
+        # Compute self attention over text
+        attn_score_unnormalized = self.self_attn(sequence_output_t).squeeze(2)  # [batch, seq_len]
+
+        # Mask out CLS and SEP
+        attn_mask_t_cls = attn_mask_t * torch.ne(input_txt, 101) * torch.ne(input_txt, 102)
+        attn_score = masked_softmax(attn_score_unnormalized, mask=attn_mask_t_cls, dim=1)  # [batch, seq_len]
+        # print("attn_score")
+        # print(attn_score.size())
+        # print(attn_score[0,:].detach().cpu().numpy())
+        attn_score = attn_score.unsqueeze(1)  # [batch_size, 1, seq_len]
+        t_context = torch.bmm(attn_score, sequence_output_t)  # [batch_size, 1, t_hidden_size]
+        t_context = t_context.squeeze(1)  # [batch_size, t_hidden_size]
+        attn_score = attn_score.squeeze(1)  # [batch_size, seq_len]
+
+        return t_context, attn_score
+
+    def compute_query_text_attentive_feature(self, input_txt, sequence_output_t, attn_mask_t):
+        # Compute self attention over text
+        #print("query_attentive_feature")
+        query = sequence_output_t[:,0,:]
+        memory_bank = sequence_output_t
+        #attn_mask_t = attn_mask_t * torch.ne(input_txt, 101) * torch.ne(input_txt, 102)
+        #print("query")
+        #print(query.size())
+        #print(memory_bank.size())
+        #print(attn_mask_t_cls.size())
+        #print(attn_mask_t_cls[0].detach().cpu().numpy())
+        t_context, attn_score = self.self_attn(query, memory_bank, attn_mask_t)
+        #print(t_context.size())
+        #print(attn_score.size())
+        #exit()
+        return t_context, attn_score
+
+    def forward(self, input_txt, sequence_output_t, sequence_output_v, attn_mask_t, attn_mask_v):
+        """
+        :param input_txt: [batch, seq_len]
+        :param sequence_output_t: [batch, seq_len, t_hidden_size]
+        :param sequence_output_v: [batch, v_seq_len, v_hidden_size]
+        :param attn_mask_t: [batch, seq_len]
+        :param attn_mask_v: [batch, v_seq_len]
+        :return: sim_scores: [batch_size, v_seq_len, 1], t_weights: [batch, seq_len]
+        """
+        t_context, attn_score = self.compute_text_attentive_feature(input_txt, sequence_output_t, attn_mask_t)
+        #t_context, attn_score = self.compute_query_text_attentive_feature(input_txt, sequence_output_t, attn_mask_t)
+        #t_context = sequence_output_t[:,0,:]  # [batch_size, t_hidden_size]
+        #attn_score = None
+
+        # Compute similarity score between t_context and each region feature
+        projected_text_attention_ctx = self.t_mlp(t_context)  # [batch_size, latent_size]
+        projected_sequence_output_v = self.v_mlp(sequence_output_v)  # [batch_size, v_seq_len, latent_size]
+        v_seq_len = projected_sequence_output_v.size(1)
+        projected_text_attention_ctx = projected_text_attention_ctx.unsqueeze(1).expand(-1, v_seq_len, -1)  # [batch_size, v_seq_len, latent_size]
+        sim_scores = self.cos(projected_text_attention_ctx, projected_sequence_output_v)  # [batch_size, v_seq_len]
+        # mask region
+        sim_scores = sim_scores.unsqueeze(2) + ((1.0 - attn_mask_v) * -10000.0).unsqueeze(2).to(dtype=sim_scores.dtype)
+        return sim_scores, attn_score
 
 
 class AttnBasedClassifier(nn.Module):

@@ -137,8 +137,11 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         batch_score = torch.sum(select_target > 0.5).item()
 
     elif task_cfg[task_id]["type"] == "VL-contrast":
-        loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
-        #loss = loss.mean() * target.size(1)
+        if task_cfg[task_id]["loss"] == "InfoNCELoss":
+            loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
+        elif task_cfg[task_id]["loss"] == "BCEWithLogitLoss":
+            loss = criterion(vil_prediction, target)
+        loss = loss.mean() * target.size(1)
         _, select_idx = torch.max(vil_prediction, dim=1)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
@@ -325,7 +328,11 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         batch_score = torch.sum(select_target > 0.5).item()
 
     elif task_cfg[task_id]["type"] == "VL-contrast":
-        loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
+        if task_cfg[task_id]["loss"] == "InfoNCELoss":
+            loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
+        elif task_cfg[task_id]["loss"] == "BCEWithLogitLoss":
+            loss = criterion(vil_prediction, target)
+        loss = loss.mean() * target.size(1)
         #print(loss)
         #exit()
         #loss = loss.mean() * target.size(1)
@@ -819,7 +826,10 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
             )
 
     elif task_cfg[task_id]["type"] == "VL-contrast":
-        loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
+        if task_cfg[task_id]["loss"] == "InfoNCELoss":
+            loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
+        elif task_cfg[task_id]["loss"] == "BCEWithLogitLoss":
+            loss = criterion(vil_prediction, target)
         loss = loss.mean() * target.size(1)
         _, select_idx = torch.max(vil_prediction, dim=1)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
