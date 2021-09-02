@@ -138,7 +138,7 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         #print(loss)
         #exit()
         #loss = loss.mean() * target.size(1)
-        _, select_idx = torch.max(vil_prediction, dim=1)
+        _, select_idx = torch.max(region_prediction, dim=1)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
 
@@ -322,7 +322,7 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         #print(loss)
         #exit()
         #loss = loss.mean() * target.size(1)
-        _, select_idx = torch.max(vil_prediction, dim=1)
+        _, select_idx = torch.max(region_prediction, dim=1)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
 
@@ -514,6 +514,25 @@ def compute_score_with_logits(logits, labels):
     scores = one_hots * labels
     return scores
 
+def  compute_binary_sequence_label_score_with_logits(logits, labels):
+    """
+    :param logits: [batch, seq_len, 1]
+    :param labels: [batch, seq_len, 1]
+    :return:
+    """
+    predicted_prob = torch.sigmoid(logits.squeeze(2))
+    prediction = (predicted_prob > 0.5).float()
+    print("prediction")
+    print(prediction.size())
+    print(prediction[0])
+    print("labels")
+    print(labels[0,:,0])
+    match_tensor = prediction == labels.squeeze(2)
+    print("match_tensor")
+    print(match_tensor.size())
+    print(match_tensor[0])
+    batch_score = match_tensor.sum(1).sum(0).item()
+    return batch_score
 
 def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader, criterion, results, others, bbox):
     batch = tuple(t.cuda(device=device, non_blocking=True) for t in batch)
@@ -709,7 +728,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
             "sequence_loss_weight"] * sequence_labeling_loss
 
         loss = loss.mean() * target.size(1)
-        _, select_idx = torch.max(vil_prediction, dim=1)
+        _, select_idx = torch.max(region_prediction, dim=1)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
 
