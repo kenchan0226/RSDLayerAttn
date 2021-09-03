@@ -1538,6 +1538,7 @@ class AttnBasedClassifier(nn.Module):
         self.self_attn = nn.Linear(t_hidden_size, 1)
         #self.out_mlp = nn.Linear(t_hidden_size + v_hidden_size, 1)
         self.out_mlp = torch.nn.Sequential(
+            torch.nn.Dropout(dropout_prob),
             nn.Linear(t_hidden_size + v_hidden_size, v_hidden_size),
             GeLU(),
             torch.nn.Dropout(dropout_prob),
