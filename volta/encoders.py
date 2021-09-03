@@ -1547,6 +1547,7 @@ class AttnBasedClassifier(nn.Module):
             )
         else:
             raise ValueError
+        self.dropout = torch.nn.Dropout(dropout_prob)
         print("VL-contrast classifier built")
 
     def compute_text_attentive_feature(self, input_txt, sequence_output_t, attn_mask_t):
@@ -1579,5 +1580,5 @@ class AttnBasedClassifier(nn.Module):
         t_context, attn_score = self.compute_text_attentive_feature(input_txt, sequence_output_t, attn_mask_t)
         # t_context: [batch_size, t_hidden_size]
         t_context_expanded = t_context.unsqueeze(1).expand(-1, v_seq_len, -1)  # [batch_size, v_seq_len, t_hidden_size]
-        pred_scores = self.out_mlp( torch.cat([t_context_expanded, sequence_output_v], dim=2) )
+        pred_scores = self.out_mlp( self.dropout(torch.cat([t_context_expanded, sequence_output_v]), dim=2) )
         return pred_scores, attn_score
