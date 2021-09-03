@@ -139,6 +139,8 @@ def main():
         # VL-BERT pooling for VQA
         config.fusion_method = task_cfg[task]["fusion_method"]
 
+    print("num_epoch: ", task_cfg[task]["num_epoch"])
+
     # Output dirs
     if args.save_name:
         prefix = "-" + args.save_name
