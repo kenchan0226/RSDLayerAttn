@@ -1536,15 +1536,13 @@ class AttnBasedClassifier(nn.Module):
     def __init__(self, t_hidden_size, v_hidden_size, dropout_prob=0.1):
         super(AttnBasedClassifier, self).__init__()
         self.self_attn = nn.Linear(t_hidden_size, 1)
-        self.out_mlp = nn.Linear(t_hidden_size + v_hidden_size, 1)
-        """
+        #self.out_mlp = nn.Linear(t_hidden_size + v_hidden_size, 1)
         self.out_mlp = torch.nn.Sequential(
             nn.Linear(t_hidden_size + v_hidden_size, v_hidden_size),
             GeLU(),
             torch.nn.Dropout(dropout_prob),
             nn.Linear(v_hidden_size, 1)
         )
-        """
         print("VL-contrast classifier built")
 
     def compute_text_attentive_feature(self, input_txt, sequence_output_t, attn_mask_t):
