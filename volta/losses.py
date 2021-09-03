@@ -8,7 +8,7 @@ import copy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .utils import masked_log_softmax
+from .utils import masked_log_softmax, masked_softmax
 
 
 # ==================================================================================================================== #
@@ -193,3 +193,27 @@ class InfoNCELoss(nn.Module):
         print(nce_loss.detach().cpu().numpy())
         """
         return nce_loss.mean(dim=0)  #
+
+
+class ListNetLoss(nn.Module):
+    def __init__(self):
+        super(ListNetLoss, self).__init__()
+
+    def forward(self, vil_prediction, target, attn_mask_v, temperature=1.0):
+        """
+        :param vil_prediction: [batch, v_seq_len, 1]
+        :param target: [batch, v_seq_len, 1]
+        :param attn_mask_v: [batch, v_seq_len]
+        :param temperature: float
+        :return:
+        """
+        assert temperature > 0
+        vil_prediction = vil_prediction.squeeze(2)  # [batch, v_seq_len]
+        target = target.squeeze(2)  # [batch, v_seq_len]
+        log_softmax_density_all = masked_log_softmax(vil_prediction/temperature, attn_mask_v, dim=1)  # [batch, v_seq_len]
+        ground_truth_softmax_density_all = masked_softmax(target/temperature, attn_mask_v, dim=1)  # [batch, v_seq_len]
+        loss = torch.sum(ground_truth_softmax_density_all * log_softmax_density_all, dim=1)
+        #ground_truth_region_mask = (target > 0.5).float()
+        #log_softmax_density_positive_samples = log_softmax_density_all * ground_truth_region_mask
+        #nce_loss = -log_softmax_density_positive_samples.sum(dim=1) / (ground_truth_region_mask.sum(dim=1) + 1e-13)  # [batch], add + 1e-13 to avoid NaN when there is no target
+        return loss.mean(dim=0)  #
