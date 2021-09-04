@@ -298,9 +298,6 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
 
     vil_prediction, vision_prediction, linguisic_prediction, _ = model(question, features, spatials, task_id,
                                                                        segment_ids, input_mask, image_mask)
-    print("task_type")
-    print(task_cfg[task_id]["type"])
-    exit()
     # for different task, we use different output to calculate the loss.
     if task_cfg[task_id]["type"] == "VL-classifier":
         loss = criterion(vil_prediction, target)
@@ -362,11 +359,12 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         contrastive_loss = criterion["contrastive"](sim_scores, target, image_mask, task_cfg[task_id]["temperature"])
         region_classification_loss = criterion["region_classification"](pred_scores, target)
         region_classification_loss = region_classification_loss.mean() * target.size(1)
-        print("InfoNCE loss")
-        print(contrastive_loss.item())
-        print("BCE loss")
-        print(region_classification_loss.item())
-        print()
+        logger.info("InfoNCE loss")
+        logger.info(contrastive_loss.item())
+        logger.info("BCE loss")
+        logger.info(region_classification_loss.item())
+        logger.info("")
+        #sys.stdout.flush()
         loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
             "contrast_loss_weight"] * contrastive_loss
 
