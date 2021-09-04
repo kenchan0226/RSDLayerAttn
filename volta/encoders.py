@@ -1645,8 +1645,8 @@ class AttnBasedContrastiveClassifierSeparated(nn.Module):
         t_context, attn_score = self.compute_text_attentive_feature(input_txt, sequence_output_t, attn_mask_t)
 
         # Compute similarity score between t_context and each region feature
-        projected_text_attention_ctx = self.t_mlp(self.dropout(t_context))  # [batch_size, latent_size]
-        projected_sequence_output_v = self.v_mlp(self.dropout(sequence_output_v))  # [batch_size, v_seq_len, latent_size]
+        projected_text_attention_ctx = self.t_mlp(t_context)  # [batch_size, latent_size]
+        projected_sequence_output_v = self.v_mlp(sequence_output_v)  # [batch_size, v_seq_len, latent_size]
         v_seq_len = projected_sequence_output_v.size(1)
         projected_text_attention_ctx = projected_text_attention_ctx.unsqueeze(1).expand(-1, v_seq_len, -1)  # [batch_size, v_seq_len, latent_size]
         sim_scores = self.cos(projected_text_attention_ctx, projected_sequence_output_v)  # [batch_size, v_seq_len]
