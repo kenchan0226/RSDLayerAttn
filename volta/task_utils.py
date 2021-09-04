@@ -16,7 +16,7 @@ from transformers import AutoTokenizer
 
 from volta.datasets import DatasetMapTrain, DatasetMapEval
 from volta.datasets._image_features_reader import ImageFeaturesH5Reader
-from volta.losses import InfoNCELoss
+from volta.losses import InfoNCELoss, ListNetLoss
 
 
 logger = logging.getLogger(__name__)
@@ -25,6 +25,7 @@ LossMap = {
     "BCEWithLogitLoss": nn.BCEWithLogitsLoss(reduction="mean"),
     "CrossEntropyLoss": nn.CrossEntropyLoss(),
     "InfoNCELoss": InfoNCELoss(),
+    "ListNetLoss": ListNetLoss(),
     "InfoNCESequenceLabelLoss": {"region_classification": InfoNCELoss(), "sequence_labeling": nn.BCEWithLogitsLoss(reduction="mean")},
     "BCESequenceLabelLoss": {"region_classification": nn.BCEWithLogitsLoss(reduction="mean"), "sequence_labeling": nn.BCEWithLogitsLoss(reduction="mean")}
 }
