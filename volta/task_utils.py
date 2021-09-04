@@ -117,8 +117,11 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         batch_score = (preds == target).sum()
 
     elif task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id]["type"] == "VL-keywordmlp":
-        loss = criterion(vil_prediction, target)
-        loss = loss.mean() * target.size(1)
+        if task_cfg[task_id]["loss"] == "BCEWithLogitLoss":
+            loss = criterion(vil_prediction, target)
+            loss = loss.mean() * target.size(1)
+        elif task_cfg[task_id]["loss"] == "ListNetLoss":
+            loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
         _, select_idx = torch.max(vil_prediction, dim=1)
         #print(select_idx)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
@@ -143,7 +146,7 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
             loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
         elif task_cfg[task_id]["loss"] == "BCEWithLogitLoss":
             loss = criterion(vil_prediction, target)
-        #loss = loss.mean() * target.size(1)
+            loss = loss.mean() * target.size(1)
         _, select_idx = torch.max(vil_prediction, dim=1)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
@@ -316,8 +319,11 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         batch_score = float((preds == target).sum()) / float(batch_size)
 
     elif task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id]["type"] == "VL-keywordmlp":
-        loss = criterion(vil_prediction, target)
-        loss = loss.mean() * target.size(1)
+        if task_cfg[task_id]["loss"] == "BCEWithLogitLoss":
+            loss = criterion(vil_prediction, target)
+            loss = loss.mean() * target.size(1)
+        elif task_cfg[task_id]["loss"] == "ListNetLoss":
+            loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
         _, select_idx = torch.max(vil_prediction, dim=1)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = float(torch.sum(select_target > 0.5)) / batch_size
@@ -790,8 +796,11 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
             )
 
     elif task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id]["type"] == "VL-keywordmlp":
-        loss = criterion(vil_prediction, target)
-        loss = loss.mean() * target.size(1)
+        if task_cfg[task_id]["loss"] == "BCEWithLogitLoss":
+            loss = criterion(vil_prediction, target)
+            loss = loss.mean() * target.size(1)
+        elif task_cfg[task_id]["loss"] == "ListNetLoss":
+            loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
         #print()
         #print(vil_prediction.size())
         #print("vil_prediction")
