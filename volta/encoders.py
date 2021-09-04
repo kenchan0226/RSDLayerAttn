@@ -1614,7 +1614,7 @@ class AttnBasedContrastiveClassifierSeparated(nn.Module):
             raise ValueError
         self.cos = nn.CosineSimilarity(dim=2, eps=1e-6)
         self.dropout = torch.nn.Dropout(dropout_prob)
-        print("VL-contrast classifier built")
+        print("VL-contrast Separated classifier built")
 
     def compute_text_attentive_feature(self, input_txt, sequence_output_t, attn_mask_t):
         # Compute self attention over text

@@ -298,6 +298,8 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
 
     vil_prediction, vision_prediction, linguisic_prediction, _ = model(question, features, spatials, task_id,
                                                                        segment_ids, input_mask, image_mask)
+    print("task_type")
+    print(task_cfg[task_id]["type"])
     # for different task, we use different output to calculate the loss.
     if task_cfg[task_id]["type"] == "VL-classifier":
         loss = criterion(vil_prediction, target)
