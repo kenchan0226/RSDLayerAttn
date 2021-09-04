@@ -363,6 +363,7 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         print(contrastive_loss.item())
         print("BCE loss")
         print(region_classification_loss.item())
+        print()
         loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
             "contrast_loss_weight"] * contrastive_loss
 
