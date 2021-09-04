@@ -138,7 +138,7 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         batch_score = torch.sum(select_target > 0.5).item()
 
     elif task_cfg[task_id]["type"] == "VL-contrast":
-        if task_cfg[task_id]["loss"] == "InfoNCELoss":
+        if task_cfg[task_id]["loss"] == "InfoNCELoss" or task_cfg[task_id]["loss"] == "ListNetLoss":
             loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
         elif task_cfg[task_id]["loss"] == "BCEWithLogitLoss":
             loss = criterion(vil_prediction, target)
@@ -330,7 +330,7 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         batch_score = torch.sum(select_target > 0.5).item()
 
     elif task_cfg[task_id]["type"] == "VL-contrast":
-        if task_cfg[task_id]["loss"] == "InfoNCELoss":
+        if task_cfg[task_id]["loss"] == "InfoNCELoss" or task_cfg[task_id]["loss"] == "ListNetLoss":
             loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
         elif task_cfg[task_id]["loss"] == "BCEWithLogitLoss":
             loss = criterion(vil_prediction, target)
@@ -829,7 +829,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
             )
 
     elif task_cfg[task_id]["type"] == "VL-contrast":
-        if task_cfg[task_id]["loss"] == "InfoNCELoss":
+        if task_cfg[task_id]["loss"] == "InfoNCELoss" or task_cfg[task_id]["loss"] == "ListNetLoss":
             loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
         elif task_cfg[task_id]["loss"] == "BCEWithLogitLoss":
             loss = criterion(vil_prediction, target)
