@@ -159,7 +159,7 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
             region_classification_loss = criterion["region_classification"](pred_scores, target)
             region_classification_loss = region_classification_loss.mean() * target.size(1)
         elif task_cfg[task_id]["loss"] == "ListNetInfoNCELoss":
-            region_classification_loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["listnet_temperature"])
+            region_classification_loss = criterion["region_classification"](vil_prediction, target, image_mask, task_cfg[task_id]["listnet_temperature"])
         loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
             "contrast_loss_weight"] * contrastive_loss
 
@@ -371,7 +371,7 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
             region_classification_loss = criterion["region_classification"](pred_scores, target)
             region_classification_loss = region_classification_loss.mean() * target.size(1)
         elif task_cfg[task_id]["loss"] == "ListNetInfoNCELoss":
-            region_classification_loss = criterion(vil_prediction, target, image_mask,
+            region_classification_loss = criterion["region_classification"](vil_prediction, target, image_mask,
                                                    task_cfg[task_id]["listnet_temperature"])
         logger.info("InfoNCE loss")
         logger.info(contrastive_loss.item())
@@ -907,7 +907,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
             region_classification_loss = criterion["region_classification"](pred_scores, target)
             region_classification_loss = region_classification_loss.mean() * target.size(1)
         elif task_cfg[task_id]["loss"] == "ListNetInfoNCELoss":
-            region_classification_loss = criterion(vil_prediction, target, image_mask,
+            region_classification_loss = criterion["region_classification"](vil_prediction, target, image_mask,
                                                    task_cfg[task_id]["listnet_temperature"])
         loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
             "contrast_loss_weight"] * contrastive_loss
