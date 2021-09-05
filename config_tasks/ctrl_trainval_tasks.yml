@@ -704,7 +704,7 @@ TASK46:
 TASK47:
   name: talk2car
   type: VL-contrast-separated
-  loss: BCEInfoNCELoss
+  loss: ListNetInfoNCELoss
   process: normal
   task_id: 47
   dataroot: data/talk2car/annotations
@@ -721,15 +721,16 @@ TASK47:
   lr: 0.0001
   num_epoch: 20
   clf_latent_size: 128
-  temperature: 0.25
+  temperature: 0.5
   num_clf_layers: 1
   num_contrast_proj_layers: 1
-  region_loss_weight: 0.5
-  contrast_loss_weight: 0.5
+  region_loss_weight: 0.4
+  contrast_loss_weight: 0.6
+  listnet_temperature: 1
 TASK48:
   name: talk2car
   type: VL-contrast-separated
-  loss: BCEInfoNCELoss
+  loss: ListNetInfoNCELoss
   process: normal
   task_id: 48
   dataroot: data/talk2car/annotations
@@ -746,36 +747,12 @@ TASK48:
   lr: 0.0001
   num_epoch: 20
   clf_latent_size: 128
-  temperature: 0.2
+  temperature: 0.5
   num_clf_layers: 1
   num_contrast_proj_layers: 1
-  region_loss_weight: 0.5
-  contrast_loss_weight: 0.5
-TASK49:
-  name: talk2car
-  type: VL-contrast-separated
-  loss: BCEInfoNCELoss
-  process: normal
-  task_id: 49
-  dataroot: data/talk2car/annotations
-  features_h5path1: data/talk2car/resnet101_faster_rcnn_genome_imgfeats_centernet/volta/refcoco+_unc_dets36_feat.lmdb
-  features_h5path2: ''
-  train_annotations_jsonpath: ''
-  val_annotations_jsonpath: ''
-  max_seq_length: 80
-  max_region_num: 36
-  batch_size: 64
-  eval_batch_size: 256
-  train_split: train
-  val_split: val
-  lr: 0.0001
-  num_epoch: 20
-  clf_latent_size: 128
-  temperature: 0.7
-  num_clf_layers: 1
-  num_contrast_proj_layers: 1
-  region_loss_weight: 0.5
-  contrast_loss_weight: 0.5
+  region_loss_weight: 0.3
+  contrast_loss_weight: 0.7
+  listnet_temperature: 1
 TASK50:
   name: talk2car
   type: VL-contrast-separated
