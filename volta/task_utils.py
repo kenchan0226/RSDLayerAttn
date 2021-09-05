@@ -373,11 +373,11 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         elif task_cfg[task_id]["loss"] == "ListNetInfoNCELoss":
             region_classification_loss = criterion["region_classification"](pred_scores, target, image_mask,
                                                    task_cfg[task_id]["listnet_temperature"])
-        logger.info("InfoNCE loss")
-        logger.info(contrastive_loss.item())
-        logger.info("BCE loss")
-        logger.info(region_classification_loss.item())
-        logger.info("")
+        #logger.info("InfoNCE loss")
+        #logger.info(contrastive_loss.item())
+        #logger.info("BCE loss")
+        #logger.info(region_classification_loss.item())
+        #logger.info("")
         #sys.stdout.flush()
         loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
             "contrast_loss_weight"] * contrastive_loss
