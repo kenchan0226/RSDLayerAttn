@@ -28,7 +28,8 @@ LossMap = {
     "ListNetLoss": ListNetLoss(),
     "InfoNCESequenceLabelLoss": {"region_classification": InfoNCELoss(), "sequence_labeling": nn.BCEWithLogitsLoss(reduction="mean")},
     "BCESequenceLabelLoss": {"region_classification": nn.BCEWithLogitsLoss(reduction="mean"), "sequence_labeling": nn.BCEWithLogitsLoss(reduction="mean")},
-    "BCEInfoNCELoss": {"region_classification": nn.BCEWithLogitsLoss(reduction="mean"), "contrastive": InfoNCELoss()}
+    "BCEInfoNCELoss": {"region_classification": nn.BCEWithLogitsLoss(reduction="mean"), "contrastive": InfoNCELoss()},
+    "ListNetInfoNCELoss": {"region_classification": ListNetLoss(), "contrastive": InfoNCELoss()}
 }
 
 
@@ -154,8 +155,11 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
     elif task_cfg[task_id]["type"] == "VL-contrast-separated":
         pred_scores, sim_scores = vil_prediction
         contrastive_loss = criterion["contrastive"](sim_scores, target, image_mask, task_cfg[task_id]["temperature"])
-        region_classification_loss = criterion["region_classification"](pred_scores, target)
-        region_classification_loss = region_classification_loss.mean() * target.size(1)
+        if task_cfg[task_id]["loss"] == "BCEInfoNCELoss":
+            region_classification_loss = criterion["region_classification"](pred_scores, target)
+            region_classification_loss = region_classification_loss.mean() * target.size(1)
+        elif task_cfg[task_id]["loss"] == "ListNetInfoNCELoss":
+            region_classification_loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["listnet_temperature"])
         loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
             "contrast_loss_weight"] * contrastive_loss
 
@@ -363,13 +367,17 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
     elif task_cfg[task_id]["type"] == "VL-contrast-separated":
         pred_scores, sim_scores = vil_prediction
         contrastive_loss = criterion["contrastive"](sim_scores, target, image_mask, task_cfg[task_id]["temperature"])
-        region_classification_loss = criterion["region_classification"](pred_scores, target)
-        region_classification_loss = region_classification_loss.mean() * target.size(1)
-        #logger.info("InfoNCE loss")
-        #logger.info(contrastive_loss.item())
-        #logger.info("BCE loss")
-        #logger.info(region_classification_loss.item())
-        #logger.info("")
+        if task_cfg[task_id]["loss"] == "BCEInfoNCELoss":
+            region_classification_loss = criterion["region_classification"](pred_scores, target)
+            region_classification_loss = region_classification_loss.mean() * target.size(1)
+        elif task_cfg[task_id]["loss"] == "ListNetInfoNCELoss":
+            region_classification_loss = criterion(vil_prediction, target, image_mask,
+                                                   task_cfg[task_id]["listnet_temperature"])
+        logger.info("InfoNCE loss")
+        logger.info(contrastive_loss.item())
+        logger.info("BCE loss")
+        logger.info(region_classification_loss.item())
+        logger.info("")
         #sys.stdout.flush()
         loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
             "contrast_loss_weight"] * contrastive_loss
@@ -895,8 +903,12 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
     elif task_cfg[task_id]["type"] == "VL-contrast-separated":
         pred_scores, sim_scores = vil_prediction
         contrastive_loss = criterion["contrastive"](sim_scores, target, image_mask, task_cfg[task_id]["temperature"])
-        region_classification_loss = criterion["region_classification"](pred_scores, target)
-        region_classification_loss = region_classification_loss.mean() * target.size(1)
+        if task_cfg[task_id]["loss"] == "BCEInfoNCELoss":
+            region_classification_loss = criterion["region_classification"](pred_scores, target)
+            region_classification_loss = region_classification_loss.mean() * target.size(1)
+        elif task_cfg[task_id]["loss"] == "ListNetInfoNCELoss":
+            region_classification_loss = criterion(vil_prediction, target, image_mask,
+                                                   task_cfg[task_id]["listnet_temperature"])
         loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
             "contrast_loss_weight"] * contrastive_loss
 
