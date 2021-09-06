@@ -915,13 +915,19 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         _, select_idx = torch.max(pred_scores, dim=1)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
+        # debug
+        pred_scores_sigmoid = torch.sigmoid(pred_scores)
         for i in range(pred_scores.size(0)):
             print("target")
             print(target[i].detach().squeeze(1).cpu().numpy())
             print("pred_scores")
-            print(pred_scores[i].detach().squeeze(1).cpu().numpy())
+            print(pred_scores_sigmoid[i].detach().squeeze(1).cpu().numpy())
             print("sim_scores")
             print(sim_scores[i].detach().squeeze(1).cpu().numpy())
+            print("region_classification_loss")
+            print(region_classification_loss.item())
+            print("contrastive_loss")
+            print(contrastive_loss.item())
             print()
         exit()
 
