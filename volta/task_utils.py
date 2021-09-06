@@ -915,6 +915,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
         # debug
+        """
         for i in range(pred_scores.size(0)):
             print("target")
             print(target[i].detach().squeeze(1).cpu().numpy())
@@ -928,6 +929,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
             print(contrastive_loss.item())
             print()
         exit()
+        """
 
         for i in range(select_idx.size(0)):
             bbox_item = spatials_ori[i, select_idx[i],:4].cpu().detach().tolist()
