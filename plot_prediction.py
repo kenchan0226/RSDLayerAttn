@@ -53,7 +53,7 @@ def main(bounding_box_json_path, image_dir, result_dir):
 
                 bbox = data_test_pred[cnt][str(i)]
                 xl, yb, w, h = bbox[0], bbox[1], bbox[2], bbox[3]
-                #fig, ax = plt.subplots(1)
+                fig, ax = plt.subplots(1)
                 ax.imshow(img)
                 rect = patches.Rectangle((xl, yb), w, h, fill=False, edgecolor='r')
                 ax.add_patch(rect)
@@ -82,7 +82,7 @@ def main(bounding_box_json_path, image_dir, result_dir):
                 centernet_score.append(centernet_list[m]['score'])
             sorted_centernet_dict = zip(centernet_bbox, centernet_score)
             sorted_centernet_dict = sorted(sorted_centernet_dict, key=lambda scores: scores[1], reverse=True)[:36]
-            #fig, ax = plt.subplots(1)
+            fig, ax = plt.subplots(1)
             ax.imshow(img)
             for m in range(0, len(sorted_centernet_dict)):
                 bbox = sorted_centernet_dict[m][0]
@@ -91,7 +91,7 @@ def main(bounding_box_json_path, image_dir, result_dir):
                 ax.add_patch(rect)
             plt.axis('off')
             plt.tight_layout()
-            plt.savefig(os.path.join(result_dir, './output_fig/val_centernet/{}_bboxes.png'.format(i)), bbox_inches='tight')
+            plt.savefig(os.path.join(result_dir, './output_fig/val_centernet/{}_bboxes_all.png'.format(i)), bbox_inches='tight')
             plt.close()
             image_id += 1
             i += 1
