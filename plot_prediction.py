@@ -33,7 +33,7 @@ def main(bounding_box_json_path, image_dir, result_dir):
                 ax.add_patch(rect)
                 plt.axis('off')
                 plt.tight_layout()
-                plt.savefig(os.path.join(result_dir, './output_fig/val/{}_bboxes.png'.format(i)), bbox_inches='tight')
+                plt.savefig(os.path.join(result_dir, './output_fig/val/val_{}_bboxes.png'.format(cnt)), bbox_inches='tight')
                 plt.close()
                 cnt += 1
                 i += 1
@@ -59,7 +59,7 @@ def main(bounding_box_json_path, image_dir, result_dir):
                 ax.add_patch(rect)
                 plt.axis('off')
                 plt.tight_layout()
-                plt.savefig(os.path.join(result_dir, './output_fig/test/{}_bboxes.png'.format(i)), bbox_inches='tight')
+                plt.savefig(os.path.join(result_dir, './output_fig/test/test_{}_bboxes.png'.format(cnt)), bbox_inches='tight')
                 plt.close()
                 cnt += 1
                 i += 1
@@ -91,7 +91,7 @@ def main(bounding_box_json_path, image_dir, result_dir):
                 ax.add_patch(rect)
             plt.axis('off')
             plt.tight_layout()
-            plt.savefig(os.path.join(result_dir, './output_fig/val_centernet/{}_bboxes_all.png'.format(i)), bbox_inches='tight')
+            plt.savefig(os.path.join(result_dir, './output_fig/val_centernet/val_{}_bboxes_all.png'.format(cnt)), bbox_inches='tight')
             plt.close()
             image_id += 1
             i += 1
