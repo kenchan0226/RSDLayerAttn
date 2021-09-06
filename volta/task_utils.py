@@ -18,6 +18,7 @@ from volta.datasets import DatasetMapTrain, DatasetMapEval
 from volta.datasets._image_features_reader import ImageFeaturesH5Reader
 from volta.losses import InfoNCELoss, ListNetLoss
 
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -916,6 +917,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
         # debug
+        np.set_printoptions(precision=4)
         pred_scores_sigmoid = torch.sigmoid(pred_scores)
         for i in range(pred_scores.size(0)):
             print("target")
