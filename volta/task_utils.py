@@ -181,7 +181,7 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         elif task_cfg[task_id]["loss"] == "ListNetInfoNCELoss":
             region_classification_loss = criterion["region_classification"](pred_scores, target, image_mask, task_cfg[task_id]["listnet_temperature"])
         # tgt object categorization loss
-        tgt_object_categorization_loss = criterion["object_categorization"](tgt_obj_class_scores, ref_category_id)
+        tgt_object_categorization_loss = criterion["object_categorization"](tgt_obj_class_scores, ref_category_id.squeeze(1))
 
         loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
             "contrast_loss_weight"] * contrastive_loss + task_cfg[task_id]["categorization_loss_weight"] * tgt_object_categorization_loss
@@ -425,7 +425,7 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         elif task_cfg[task_id]["loss"] == "ListNetInfoNCELoss":
             region_classification_loss = criterion["region_classification"](pred_scores, target, image_mask, task_cfg[task_id]["listnet_temperature"])
         # tgt object categorization loss
-        tgt_object_categorization_loss = criterion["object_categorization"](tgt_obj_class_scores, ref_category_id)
+        tgt_object_categorization_loss = criterion["object_categorization"](tgt_obj_class_scores, ref_category_id.squeeze(1))
 
         print("region_classification_loss")
         print(region_classification_loss.item())
@@ -1021,7 +1021,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         elif task_cfg[task_id]["loss"] == "ListNetInfoNCELoss":
             region_classification_loss = criterion["region_classification"](pred_scores, target, image_mask, task_cfg[task_id]["listnet_temperature"])
         # tgt object categorization loss
-        tgt_object_categorization_loss = criterion["object_categorization"](tgt_obj_class_scores, ref_category_id)
+        tgt_object_categorization_loss = criterion["object_categorization"](tgt_obj_class_scores, ref_category_id.squeeze(1))
 
         loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
             "contrast_loss_weight"] * contrastive_loss + task_cfg[task_id]["categorization_loss_weight"] * tgt_object_categorization_loss

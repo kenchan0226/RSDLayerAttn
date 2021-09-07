@@ -1335,7 +1335,7 @@ class BertForVLTasks(BertPreTrainedModel):
             vil_prediction, attn_score = self.clfs_dict[task_id](input_txt, sequence_output_t, sequence_output_v,
                                                                  attention_mask) + (
                     (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
-        elif self.task_cfg[task_id]["type"] == "VL-multi-task-contrast":
+        elif self.task_cfg[task_id]["type"] == "VL-seq-label-contrast":
             region_prediction, attn_score = self.clfs_dict[str(task_id)+"region_classifier"](input_txt, sequence_output_t, sequence_output_v,
                                                                  attention_mask, image_attention_mask)
             sequence_prediction = self.clfs_dict[str(task_id)+"token_classifier"](sequence_output_t)
