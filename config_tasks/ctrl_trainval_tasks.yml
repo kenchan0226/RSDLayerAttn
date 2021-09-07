@@ -725,3 +725,4 @@ TASK52:
   region_loss_weight: 0.34
   contrast_loss_weight: 0.33
   categorization_loss_weight: 0.33
+  num_obj_classes: 23
