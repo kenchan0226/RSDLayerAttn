@@ -1220,6 +1220,11 @@ class BertForVLTasks(BertPreTrainedModel):
                 task2clf[task_id] = AttnBasedContrastiveClassifierSeparated(config.hidden_size, config.v_hidden_size,
                                                                    self.task_cfg[task_id]["clf_latent_size"],
                                                                    dropout_prob, self.task_cfg[task_id].get("num_contrast_proj_layers", 1), self.task_cfg[task_id].get("num_clf_layers", 1))
+            elif task_type == "VL-obj-categorize-contrast":
+                print("VL-contrast separated")
+                task2clf[task_id] = AttnBasedContrastiveTgtObjCategorizationClassifier(config.hidden_size, config.v_hidden_size,
+                                                                   self.task_cfg[task_id]["clf_latent_size"], self.task_cfg[task_id]["num_obj_classes"],
+                                                                   dropout_prob, self.task_cfg[task_id].get("num_contrast_proj_layers", 1), self.task_cfg[task_id].get("num_clf_layers", 1))
             elif task_type == "VL-keywordmlp":
                 print("VL-keywordmlp classifier")
                 task2clf[task_id] = AttnBasedClassifier(config.hidden_size, config.v_hidden_size, dropout_prob, self.task_cfg[task_id].get("num_clf_layers", 1))
