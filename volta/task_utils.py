@@ -154,7 +154,7 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
     elif task_cfg[task_id]["type"] == "VL-contrast-separated":
         pred_scores, sim_scores, attn_scores = vil_prediction
         contrastive_loss = criterion["contrastive"](sim_scores, target, image_mask, task_cfg[task_id]["temperature"])
-        if task_cfg[task_id]["loss"] == "BCEInfoNCELoss":
+        if task_cfg[task_id]["loss"] == "BCEInfoNCELoss" or task_cfg[task_id]["loss"] == "BCEListNet":
             region_classification_loss = criterion["region_classification"](pred_scores, target)
             region_classification_loss = region_classification_loss.mean() * target.size(1)
         elif task_cfg[task_id]["loss"] == "ListNetInfoNCELoss":
@@ -366,7 +366,7 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
     elif task_cfg[task_id]["type"] == "VL-contrast-separated":
         pred_scores, sim_scores, attn_scores = vil_prediction
         contrastive_loss = criterion["contrastive"](sim_scores, target, image_mask, task_cfg[task_id]["temperature"])
-        if task_cfg[task_id]["loss"] == "BCEInfoNCELoss":
+        if task_cfg[task_id]["loss"] == "BCEInfoNCELoss" or task_cfg[task_id]["loss"] == "BCEListNet":
             region_classification_loss = criterion["region_classification"](pred_scores, target)
             region_classification_loss = region_classification_loss.mean() * target.size(1)
         elif task_cfg[task_id]["loss"] == "ListNetInfoNCELoss":
@@ -902,7 +902,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
     elif task_cfg[task_id]["type"] == "VL-contrast-separated":
         pred_scores, sim_scores, attn_scores = vil_prediction
         contrastive_loss = criterion["contrastive"](sim_scores, target, image_mask, task_cfg[task_id]["temperature"])
-        if task_cfg[task_id]["loss"] == "BCEInfoNCELoss":
+        if task_cfg[task_id]["loss"] == "BCEInfoNCELoss" or task_cfg[task_id]["loss"] == "BCEListNet":
             region_classification_loss = criterion["region_classification"](pred_scores, target)
             region_classification_loss = region_classification_loss.mean() * target.size(1)
         elif task_cfg[task_id]["loss"] == "ListNetInfoNCELoss":
