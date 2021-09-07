@@ -28,7 +28,8 @@ LossMap = {
     "InfoNCESequenceLabelLoss": {"region_classification": InfoNCELoss(), "sequence_labeling": nn.BCEWithLogitsLoss(reduction="mean")},
     "BCESequenceLabelLoss": {"region_classification": nn.BCEWithLogitsLoss(reduction="mean"), "sequence_labeling": nn.BCEWithLogitsLoss(reduction="mean")},
     "BCEInfoNCELoss": {"region_classification": nn.BCEWithLogitsLoss(reduction="mean"), "contrastive": InfoNCELoss()},
-    "ListNetInfoNCELoss": {"region_classification": ListNetLoss(), "contrastive": InfoNCELoss()}
+    "ListNetInfoNCELoss": {"region_classification": ListNetLoss(), "contrastive": InfoNCELoss()},
+    "BCEListNet": {"region_classification": nn.BCEWithLogitsLoss(reduction="mean"), "contrastive": ListNetLoss()}
 }
 
 
