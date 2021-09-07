@@ -85,7 +85,7 @@ class ReferExpressionDataset(Dataset):
 
         if task == "refcocog":
             self.refer = REFER(dataroot, dataset=task, splitBy="umd")
-        elif task == "talk2car" or task == "talk2carSeqLabel":
+        elif task.startswith("talk2car"):
             print("using talk2car REFER data loader")
             self.refer = REFERTALK2CAR(dataroot)
         else:
@@ -302,6 +302,168 @@ class ReferExpressionDataset(Dataset):
 
     def __len__(self):
         return len(self.entries)
+
+
+class ReferExpressionTargetObjCategorizationDataset(ReferExpressionDataset):
+    def __init__(
+            self,
+            task: str,
+            dataroot: str,
+            annotations_jsonpath: str,
+            split: str,
+            image_features_reader: ImageFeaturesH5Reader,
+            gt_image_features_reader: ImageFeaturesH5Reader,
+            tokenizer: AutoTokenizer,
+            bert_model,
+            padding_index: int = 0,
+            max_seq_length: int = 20,
+            max_region_num: int = 60,
+            num_locs=5,
+            add_global_imgfeat=None,
+            append_mask_sep=False,
+    ):
+        super(ReferExpressionTargetObjCategorizationDataset, self).__init__(task, dataroot, annotations_jsonpath, split,
+                                                                  image_features_reader, gt_image_features_reader,
+                                                                  tokenizer,
+                                                                  bert_model, padding_index, max_seq_length,
+                                                                  max_region_num,
+                                                                  num_locs, add_global_imgfeat, append_mask_sep)
+
+        print("ReferExpressionObjClassificationDataset built")
+
+    def _load_annotations(self):
+        # Build an index which maps image id with a list of caption annotations.
+        entries = []
+        remove_ids = []
+        if self.split == "mteval":
+            remove_ids = np.load(
+                os.path.join(self.dataroot, "cache", "coco_test_ids.npy")
+            )
+            remove_ids = [int(x) for x in remove_ids]
+
+        for ref_id in self.ref_ids:
+            ref = self.refer.Refs[ref_id]
+            image_id = ref["image_id"]
+            if self.split == "train" and int(image_id) in remove_ids:
+                continue
+            elif self.split == "mteval" and int(image_id) not in remove_ids:
+                continue
+            ref_id = ref["ref_id"]
+            refBox = self.refer.getRefBox(ref_id)
+            ref_ann = self.refer.refToAnn[ref_id]
+            for sent, sent_id in zip(ref["sentences"], ref["sent_ids"]):
+                caption = sent["raw"]
+                entries.append(
+                    {
+                        "caption": caption,
+                        "sent_id": sent_id,
+                        "image_id": image_id,
+                        "refBox": refBox,
+                        #"ref_category_name": ref_ann["category_name"],
+                        "ref_category_id": [ref_ann["category_id"]],
+                        "ref_id": ref_id,
+                    }
+                )
+
+        return entries
+
+    def tensorize(self):
+        for entry in self.entries:
+            token = torch.from_numpy(np.array(entry["token"]))
+            entry["token"] = token
+
+            input_mask = torch.from_numpy(np.array(entry["input_mask"]))
+            entry["input_mask"] = input_mask
+
+            segment_ids = torch.from_numpy(np.array(entry["segment_ids"]))
+            entry["segment_ids"] = segment_ids
+
+            # tensorize sequence label
+            ref_category_id = torch.from_numpy(np.array(entry["ref_category_id"]))
+            entry["ref_category_id"] = ref_category_id
+
+
+    def __getitem__(self, index):
+        entry = self.entries[index]
+
+        image_id = entry["image_id"]
+        ref_box = entry["refBox"]
+
+        ref_box = [
+            ref_box[0],
+            ref_box[1],
+            ref_box[0] + ref_box[2],
+            ref_box[1] + ref_box[3],
+        ]
+        features, num_boxes, boxes, boxes_ori = self._image_features_reader[image_id]
+
+        boxes_ori = boxes_ori[:num_boxes]
+        boxes = boxes[:num_boxes]
+        features = features[:num_boxes]
+
+        mix_boxes_ori = boxes_ori
+        mix_boxes = boxes
+        mix_features = features
+        mix_num_boxes = min(int(num_boxes), self._max_region_num)
+
+        # print("index:{}, ref_box:{}, predict:{}".format(index, ref_box, mix_boxes_ori[:, :1]))
+
+        mix_target = iou(
+            torch.tensor(mix_boxes_ori[:, :4]).float(),
+            torch.tensor([ref_box]).float(),
+        )
+
+        """
+        bbox1 = mix_boxes_ori[torch.argmax(mix_target),:4].tolist()
+        int_bbox1=[]
+        for k in bbox1:
+            k =int(k)
+            int_bbox1.append(k)
+        #print("index:{}, predict_box:{}".format(index,int_bbox1))
+        print(index, int_bbox1)
+        """
+
+        image_mask = [1] * (mix_num_boxes)
+        while len(image_mask) < self._max_region_num:
+            image_mask.append(0)
+        mix_boxes_pad = np.zeros((self._max_region_num, self._num_locs))
+        mix_features_pad = np.zeros((self._max_region_num, 2048))
+
+        mix_boxes_pad[:mix_num_boxes] = mix_boxes[:mix_num_boxes]
+        mix_features_pad[:mix_num_boxes] = mix_features[:mix_num_boxes]
+
+        # pad mix box ori
+        mix_boxes_ori_pad = np.zeros((self._max_region_num, self._num_locs))
+        mix_boxes_ori_pad[:mix_num_boxes] = mix_boxes_ori[:mix_num_boxes]
+
+        # appending the target feature.
+        features = torch.tensor(mix_features_pad).float()
+        image_mask = torch.tensor(image_mask).long()
+        spatials = torch.tensor(mix_boxes_pad).float()
+
+        target = torch.zeros((self._max_region_num, 1)).float()
+        target[:mix_num_boxes] = mix_target[:mix_num_boxes]
+
+        # bbox2 = mix_boxes_ori[torch.argmax(target[:mix_num_boxes]),:4].tolist()
+
+        spatials_ori = torch.tensor(mix_boxes_ori_pad).float()
+        # print(spatials_ori)
+        caption = entry["token"]
+        input_mask = entry["input_mask"]
+        segment_ids = entry["segment_ids"]
+        ref_category_id = entry["ref_category_id"]
+
+        # print("spatials")
+        # print(spatials[1,:4])
+        # print("mix_boxes")
+        # print(mix_boxes[1,:4])
+        # print("spatials_ori")
+        # print(spatials_ori[1,:4])
+        # print("mix_boxes_ori")
+        # print(mix_boxes_ori[1,:4])
+        # exit()
+
+        return features, spatials, spatials_ori, image_mask, caption, target, input_mask, segment_ids, image_id, ref_category_id
 
 
 class ReferExpressionSequenceLabelDataset(ReferExpressionDataset):

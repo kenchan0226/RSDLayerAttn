@@ -1658,3 +1658,91 @@ class AttnBasedContrastiveClassifierSeparated(nn.Module):
         t_context_expanded = t_context.unsqueeze(1).expand(-1, v_seq_len, -1)  # [batch_size, v_seq_len, t_hidden_size]
         pred_scores = self.out_mlp(self.dropout(torch.cat([t_context_expanded, sequence_output_v], dim=2)))
         return pred_scores, sim_scores, attn_score
+
+
+class AttnBasedContrastiveTgtObjCategorizationClassifier(nn.Module):
+    def __init__(self, t_hidden_size, v_hidden_size, latent_size, num_obj_classes, dropout_prob=0.1, num_contrast_proj_layers=1, num_clf_layers=1):
+        super(AttnBasedContrastiveTgtObjCategorizationClassifier, self).__init__()
+        self.self_attn = nn.Linear(t_hidden_size, 1)
+        if num_contrast_proj_layers == 1:
+            self.v_mlp = nn.Linear(v_hidden_size, latent_size)
+            self.t_mlp = nn.Linear(t_hidden_size, latent_size)
+        else:
+            self.v_mlp = torch.nn.Sequential(
+                nn.Linear(v_hidden_size, v_hidden_size),
+                GeLU(),
+                torch.nn.Dropout(dropout_prob),
+                nn.Linear(v_hidden_size, latent_size)
+            )
+            self.t_mlp = torch.nn.Sequential(
+                nn.Linear(t_hidden_size, t_hidden_size),
+                GeLU(),
+                torch.nn.Dropout(dropout_prob),
+                nn.Linear(t_hidden_size, latent_size)
+            )
+        if num_clf_layers == 1:
+            self.out_mlp = nn.Linear(t_hidden_size + v_hidden_size, 1)
+        elif num_clf_layers == 2:
+            self.out_mlp = torch.nn.Sequential(
+                nn.Linear(t_hidden_size + v_hidden_size, v_hidden_size),
+                GeLU(),
+                torch.nn.Dropout(dropout_prob),
+                nn.Linear(v_hidden_size, 1)
+            )
+        else:
+            raise ValueError
+        self.tgt_obj_class_mlp = nn.Linear(t_hidden_size, num_obj_classes)
+        self.cos = nn.CosineSimilarity(dim=2, eps=1e-6)
+        self.dropout = torch.nn.Dropout(dropout_prob)
+        print("AttnBasedContrastiveTgtObjCategorizationClassifier built")
+
+    def compute_text_attentive_feature(self, input_txt, sequence_output_t, attn_mask_t):
+        # Compute self attention over text
+        attn_score_unnormalized = self.self_attn(sequence_output_t).squeeze(2)  # [batch, seq_len]
+
+        # Mask out CLS and SEP
+        #attn_mask_t = attn_mask_t * torch.ne(input_txt, 101) * torch.ne(input_txt, 102)
+        attn_score = masked_softmax(attn_score_unnormalized, mask=attn_mask_t, dim=1)  # [batch, seq_len]
+        # print("attn_score")
+        # print(attn_score.size())
+        # print(attn_score[0,:].detach().cpu().numpy())
+        attn_score = attn_score.unsqueeze(1)  # [batch_size, 1, seq_len]
+        t_context = torch.bmm(attn_score, sequence_output_t)  # [batch_size, 1, t_hidden_size]
+        t_context = t_context.squeeze(1)  # [batch_size, t_hidden_size]
+        attn_score = attn_score.squeeze(1)  # [batch_size, seq_len]
+
+        return t_context, attn_score
+
+    def forward(self, input_txt, sequence_output_t, sequence_output_v, attn_mask_t, attn_mask_v):
+        """
+        :param input_txt: [batch, seq_len]
+        :param sequence_output_t: [batch, seq_len, t_hidden_size]
+        :param sequence_output_v: [batch, v_seq_len, v_hidden_size]
+        :param attn_mask_t: [batch, seq_len]
+        :param attn_mask_v: [batch, v_seq_len]
+        :return: sim_scores: [batch_size, v_seq_len, 1], t_weights: [batch, seq_len]
+        """
+        t_context, attn_score = self.compute_text_attentive_feature(input_txt, sequence_output_t, attn_mask_t)
+
+        # Compute similarity score between t_context and each region feature
+        projected_text_attention_ctx = self.t_mlp(t_context)  # [batch_size, latent_size]
+        projected_sequence_output_v = self.v_mlp(sequence_output_v)  # [batch_size, v_seq_len, latent_size]
+        v_seq_len = projected_sequence_output_v.size(1)
+        projected_text_attention_ctx = projected_text_attention_ctx.unsqueeze(1).expand(-1, v_seq_len, -1)  # [batch_size, v_seq_len, latent_size]
+        sim_scores = self.cos(projected_text_attention_ctx, projected_sequence_output_v)  # [batch_size, v_seq_len]
+        # compute contrastive score
+        sim_scores = sim_scores.unsqueeze(2)
+
+        # compute grounding output
+        # t_context: [batch_size, t_hidden_size]
+        t_context_expanded = t_context.unsqueeze(1).expand(-1, v_seq_len, -1)  # [batch_size, v_seq_len, t_hidden_size]
+        pred_scores = self.out_mlp(self.dropout(torch.cat([t_context_expanded, sequence_output_v], dim=2)))
+
+        # compute object classification output
+        #obj_class = self.obj_class_mlp(sequence_output_t[:, 0, :])
+        tgt_obj_class_scores = self.tgt_obj_class_mlp(t_context)
+        # obj_class: [batch, num_classes]
+        print("tgt_obj_class_scores")
+        print(tgt_obj_class_scores.size())
+
+        return pred_scores, sim_scores, tgt_obj_class_scores, attn_score

@@ -29,7 +29,8 @@ LossMap = {
     "BCESequenceLabelLoss": {"region_classification": nn.BCEWithLogitsLoss(reduction="mean"), "sequence_labeling": nn.BCEWithLogitsLoss(reduction="mean")},
     "BCEInfoNCELoss": {"region_classification": nn.BCEWithLogitsLoss(reduction="mean"), "contrastive": InfoNCELoss()},
     "ListNetInfoNCELoss": {"region_classification": ListNetLoss(), "contrastive": InfoNCELoss()},
-    "BCEListNet": {"region_classification": nn.BCEWithLogitsLoss(reduction="mean"), "contrastive": ListNetLoss()}
+    "BCEListNet": {"region_classification": nn.BCEWithLogitsLoss(reduction="mean"), "contrastive": ListNetLoss()},
+    "BCEInfoNCECELoss": {"region_classification": nn.BCEWithLogitsLoss(reduction="mean"), "contrastive": InfoNCELoss(), "object_categorization": nn.CrossEntropyLoss()}
 }
 
 
@@ -40,8 +41,10 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         features, spatials, image_mask, question, target, input_mask, segment_ids, multi_choice_ids, question_id = batch
     elif task_cfg[task_id]["type"].startswith("VL-contrast") or task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id]["type"] == "VL-keywordmlp":
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id = batch
-    elif task_cfg[task_id]["type"].startswith("VL-multi-task"):
+    elif task_cfg[task_id]["type"].startswith("VL-seq-label"):
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, sequence_labels_target = batch
+    elif task_cfg[task_id]["type"].startswith("VL-obj-categorize"):
+        features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, ref_category_id = batch
     else:
         features, spatials, image_mask, question, target, input_mask, segment_ids, question_id = batch
 
@@ -128,7 +131,7 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
 
-    elif task_cfg[task_id]["type"] == "VL-multi-task":
+    elif task_cfg[task_id]["type"] == "VL-seq-label":
         region_prediction, sequence_prediction = vil_prediction
         region_classification_loss = criterion["region_classification"](region_prediction, target)
         region_classification_loss = region_classification_loss.mean() * target.size(1)
@@ -167,7 +170,27 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
 
-    elif task_cfg[task_id]["type"] == "VL-multi-task-contrast":
+    elif task_cfg[task_id]["type"] == "VL-obj-categorize-contrast":
+        pred_scores, sim_scores, tgt_obj_class_scores, attn_scores = vil_prediction
+        # contrastive loss
+        contrastive_loss = criterion["contrastive"](sim_scores, target, image_mask, task_cfg[task_id]["temperature"])
+        # region classification loss
+        if task_cfg[task_id]["loss"] == "BCEInfoNCELoss" or task_cfg[task_id]["loss"] == "BCEListNet":
+            region_classification_loss = criterion["region_classification"](pred_scores, target)
+            region_classification_loss = region_classification_loss.mean() * target.size(1)
+        elif task_cfg[task_id]["loss"] == "ListNetInfoNCELoss":
+            region_classification_loss = criterion["region_classification"](pred_scores, target, image_mask, task_cfg[task_id]["listnet_temperature"])
+        # tgt object categorization loss
+        tgt_object_categorization_loss = criterion["object_categorization"](tgt_obj_class_scores, ref_category_id)
+
+        loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
+            "contrast_loss_weight"] * contrastive_loss + task_cfg[task_id]["categorization_loss_weight"] * tgt_object_categorization_loss
+
+        _, select_idx = torch.max(pred_scores, dim=1)
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
+
+    elif task_cfg[task_id]["type"] == "VL-seq-label-contrast":
         region_prediction, sequence_prediction = vil_prediction
         region_classification_loss = criterion["region_classification"](region_prediction, target, image_mask, task_cfg[task_id]["temperature"])
         sequence_labeling_loss = criterion["sequence_labeling"](sequence_prediction, sequence_labels_target)
@@ -212,8 +235,13 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
     elif task_cfg[task_id]["type"].startswith("VL-contrast") or task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id][
             "type"] == "VL-keywordmlp":
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id = batch
-    elif task_cfg[task_id]["type"].startswith("VL-multi-task"):
+    elif task_cfg[task_id]["type"].startswith("VL-seq-label"):
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, sequence_labels_target = batch
+    elif task_cfg[task_id]["type"].startswith("VL-obj-categorize"):
+        features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, ref_category_id = batch
+        print("ref_category_id")
+        print(ref_category_id.size())
+        print(ref_category_id.detach().cpu().numpy())
     else:
         features, spatials, image_mask, question, target, input_mask, segment_ids, question_id = batch
 
@@ -332,7 +360,7 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = float(torch.sum(select_target > 0.5)) / batch_size
 
-    elif task_cfg[task_id]["type"] == "VL-multi-task":
+    elif task_cfg[task_id]["type"] == "VL-seq-label":
         region_prediction, sequence_prediction = vil_prediction
         region_classification_loss = criterion["region_classification"](region_prediction, target)
         #print("region_classification_loss")
@@ -386,7 +414,35 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
 
-    elif task_cfg[task_id]["type"] == "VL-multi-task-contrast":
+    elif task_cfg[task_id]["type"] == "VL-obj-categorize-contrast":
+        pred_scores, sim_scores, tgt_obj_class_scores, attn_scores = vil_prediction
+        # contrastive loss
+        contrastive_loss = criterion["contrastive"](sim_scores, target, image_mask, task_cfg[task_id]["temperature"])
+        # region classification loss
+        if task_cfg[task_id]["loss"] == "BCEInfoNCELoss" or task_cfg[task_id]["loss"] == "BCEListNet":
+            region_classification_loss = criterion["region_classification"](pred_scores, target)
+            region_classification_loss = region_classification_loss.mean() * target.size(1)
+        elif task_cfg[task_id]["loss"] == "ListNetInfoNCELoss":
+            region_classification_loss = criterion["region_classification"](pred_scores, target, image_mask, task_cfg[task_id]["listnet_temperature"])
+        # tgt object categorization loss
+        tgt_object_categorization_loss = criterion["object_categorization"](tgt_obj_class_scores, ref_category_id)
+
+        print("region_classification_loss")
+        print(region_classification_loss.item())
+        print("contrast loss")
+        print(contrastive_loss.item())
+        print("tgt_object_categorization_loss")
+        print(tgt_object_categorization_loss.item())
+        exit()
+
+        loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
+            "contrast_loss_weight"] * contrastive_loss + task_cfg[task_id]["categorization_loss_weight"] * tgt_object_categorization_loss
+
+        _, select_idx = torch.max(pred_scores, dim=1)
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
+
+    elif task_cfg[task_id]["type"] == "VL-seq-label-contrast":
         region_prediction, sequence_prediction = vil_prediction
         region_classification_loss = criterion["region_classification"](region_prediction, target, image_mask, task_cfg[task_id]["temperature"])
         #print("region_classification_loss")
@@ -634,8 +690,10 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
     elif task_cfg[task_id]["type"].startswith("VL-contrast") or task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id][
             "type"] == "VL-keywordmlp":
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id = batch
-    elif task_cfg[task_id]["type"].startswith("VL-multi-task"):
+    elif task_cfg[task_id]["type"].startswith("VL-seq-label"):
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, sequence_labels_target = batch
+    elif task_cfg[task_id]["type"].startswith("VL-obj-categorize"):
+        features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, ref_category_id = batch
     else:
         features, spatials, image_mask, question, target, input_mask, segment_ids, question_id = batch
 
@@ -773,7 +831,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
                 }
             )
 
-    elif task_cfg[task_id]["type"] == "VL-multi-task":
+    elif task_cfg[task_id]["type"] == "VL-seq-label":
         region_prediction, sequence_prediction = vil_prediction
         region_classification_loss = criterion["region_classification"](region_prediction, target)
         region_classification_loss = region_classification_loss.mean() * target.size(1)
@@ -843,7 +901,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
                 }
             )
 
-    elif task_cfg[task_id]["type"] == "VL-multi-task-contrast":
+    elif task_cfg[task_id]["type"] == "VL-seq-label-contrast":
         #loss = criterion(vil_prediction, target)
 
         region_prediction, sequence_prediction = vil_prediction
@@ -942,6 +1000,63 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
               {
                 question_id[i].item(): [bbox_item[0], bbox_item[1], bbox_item[2]-bbox_item[0], bbox_item[3]-bbox_item[1]]
               }
+            )
+            results.append(
+                {
+                    "id": question_id[i].item(),
+                    "target": select_idx[i].item(),
+                    "IOU": select_target[i].item(),
+                    "attention_score": attn_scores[i]
+                }
+            )
+
+    elif task_cfg[task_id]["type"] == "VL-obj-categorize-contrast":
+        pred_scores, sim_scores, tgt_obj_class_scores, attn_scores = vil_prediction
+        # contrastive loss
+        contrastive_loss = criterion["contrastive"](sim_scores, target, image_mask, task_cfg[task_id]["temperature"])
+        # region classification loss
+        if task_cfg[task_id]["loss"] == "BCEInfoNCELoss" or task_cfg[task_id]["loss"] == "BCEListNet":
+            region_classification_loss = criterion["region_classification"](pred_scores, target)
+            region_classification_loss = region_classification_loss.mean() * target.size(1)
+        elif task_cfg[task_id]["loss"] == "ListNetInfoNCELoss":
+            region_classification_loss = criterion["region_classification"](pred_scores, target, image_mask, task_cfg[task_id]["listnet_temperature"])
+        # tgt object categorization loss
+        tgt_object_categorization_loss = criterion["object_categorization"](tgt_obj_class_scores, ref_category_id)
+
+        loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
+            "contrast_loss_weight"] * contrastive_loss + task_cfg[task_id]["categorization_loss_weight"] * tgt_object_categorization_loss
+
+        _, select_idx = torch.max(pred_scores, dim=1)
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
+
+        attn_scores = attn_scores.detach().cpu().tolist()
+
+        # debug
+        """
+        for i in range(pred_scores.size(0)):
+            print("target")
+            print(target[i].detach().squeeze(1).cpu().numpy())
+            print("pred_scores")
+            print(pred_scores[i].detach().squeeze(1).cpu().numpy())
+            print("sim_scores")
+            print(sim_scores[i].detach().squeeze(1).cpu().numpy())
+            print("region_classification_loss")
+            print(region_classification_loss.item())
+            print("contrastive_loss")
+            print(contrastive_loss.item())
+            print()
+        exit()
+        """
+
+        for i in range(select_idx.size(0)):
+            bbox_item = spatials_ori[i, select_idx[i], :4].cpu().detach().tolist()
+            bbox_item = bbox_item[0]
+            bbox.append(
+                {
+                    question_id[i].item(): [bbox_item[0], bbox_item[1], bbox_item[2] - bbox_item[0],
+                                            bbox_item[3] - bbox_item[1]]
+                }
             )
             results.append(
                 {

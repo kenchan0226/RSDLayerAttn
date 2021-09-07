@@ -7,7 +7,7 @@
 from .concept_cap_dataset import ConceptCapLoaderTrain, ConceptCapLoaderVal
 from .vqa_dataset import VQAClassificationDataset
 from .nlvr2_dataset import NLVR2Dataset
-from .refer_expression_dataset import ReferExpressionDataset, ReferExpressionSequenceLabelDataset
+from .refer_expression_dataset import ReferExpressionDataset, ReferExpressionSequenceLabelDataset, ReferExpressionTargetObjCategorizationDataset
 from .retrieval_dataset import RetrievalDataset, RetrievalDatasetVal
 from .vcr_dataset import VCRDataset
 from .visual_entailment_dataset import VisualEntailmentDataset
@@ -51,6 +51,7 @@ DatasetMapTrain = {
     "refcocog": ReferExpressionDataset,
     "talk2car": ReferExpressionDataset,
     "talk2carSeqLabel": ReferExpressionSequenceLabelDataset,
+    "talk2carTgtObjCategorize": ReferExpressionTargetObjCategorizationDataset,
     "NLVR2": NLVR2Dataset,
     "VisualEntailment": VisualEntailmentDataset,
     "GQA": GQAClassificationDataset,
@@ -71,6 +72,8 @@ DatasetMapEval = {
     "refcoco+": ReferExpressionDataset,
     "refcocog": ReferExpressionDataset,
     "talk2car": ReferExpressionDataset,
+    "talk2carSeqLabel": ReferExpressionSequenceLabelDataset,
+    "talk2carTgtObjCategorize": ReferExpressionTargetObjCategorizationDataset,
     "NLVR2": NLVR2Dataset,
     "VisualEntailment": VisualEntailmentDataset,
     "GQA": GQAClassificationDataset,
