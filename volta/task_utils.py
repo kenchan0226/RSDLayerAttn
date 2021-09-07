@@ -152,7 +152,7 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         batch_score = torch.sum(select_target > 0.5).item()
 
     elif task_cfg[task_id]["type"] == "VL-contrast-separated":
-        pred_scores, sim_scores = vil_prediction
+        pred_scores, sim_scores, attn_scores = vil_prediction
         contrastive_loss = criterion["contrastive"](sim_scores, target, image_mask, task_cfg[task_id]["temperature"])
         if task_cfg[task_id]["loss"] == "BCEInfoNCELoss":
             region_classification_loss = criterion["region_classification"](pred_scores, target)
@@ -364,7 +364,7 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
     elif task_cfg[task_id]["type"] == "VL-contrast-separated":
-        pred_scores, sim_scores = vil_prediction
+        pred_scores, sim_scores, attn_scores = vil_prediction
         contrastive_loss = criterion["contrastive"](sim_scores, target, image_mask, task_cfg[task_id]["temperature"])
         if task_cfg[task_id]["loss"] == "BCEInfoNCELoss":
             region_classification_loss = criterion["region_classification"](pred_scores, target)
@@ -900,7 +900,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
                 }
             )
     elif task_cfg[task_id]["type"] == "VL-contrast-separated":
-        pred_scores, sim_scores = vil_prediction
+        pred_scores, sim_scores, attn_scores = vil_prediction
         contrastive_loss = criterion["contrastive"](sim_scores, target, image_mask, task_cfg[task_id]["temperature"])
         if task_cfg[task_id]["loss"] == "BCEInfoNCELoss":
             region_classification_loss = criterion["region_classification"](pred_scores, target)
@@ -914,6 +914,9 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         _, select_idx = torch.max(pred_scores, dim=1)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
+
+        attn_scores = attn_scores.detach().cpu().tolist()
+
         # debug
         """
         for i in range(pred_scores.size(0)):
@@ -944,6 +947,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
                     "id": question_id[i].item(),
                     "target": select_idx[i].item(),
                     "IOU": select_target[i].item(),
+                    "attention_score": attn_scores[i]
                 }
             )
 
