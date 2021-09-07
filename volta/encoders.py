@@ -1751,7 +1751,7 @@ class AttnBasedContrastiveTgtObjCategorizationClassifier(nn.Module):
         tgt_obj_class_scores = self.tgt_obj_class_mlp(sequence_output_t[:, 0, :])
         #tgt_obj_class_scores = self.tgt_obj_class_mlp(t_context)
         # obj_class: [batch, num_classes]
-        print("tgt_obj_class_scores")
-        print(tgt_obj_class_scores.size())
+        #print("tgt_obj_class_scores")
+        #print(tgt_obj_class_scores.size())
 
         return pred_scores, sim_scores, tgt_obj_class_scores, attn_score
