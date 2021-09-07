@@ -242,9 +242,9 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, sequence_labels_target = batch
     elif task_cfg[task_id]["type"].startswith("VL-obj-categorize"):
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, ref_category_id = batch
-        print("ref_category_id")
-        print(ref_category_id.size())
-        print(ref_category_id.detach().cpu().numpy())
+        #print("ref_category_id")
+        #print(ref_category_id.size())
+        #print(ref_category_id.detach().cpu().numpy())
     else:
         features, spatials, image_mask, question, target, input_mask, segment_ids, question_id = batch
 
