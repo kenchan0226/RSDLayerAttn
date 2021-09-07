@@ -431,7 +431,7 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
             raise ValueError
         # tgt object categorization loss
         tgt_object_categorization_loss = criterion["object_categorization"](tgt_obj_class_scores, ref_category_id.squeeze(1))
-
+        """
         print("region_classification_loss")
         print(region_classification_loss.item())
         print("contrast loss")
@@ -439,6 +439,7 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         print("tgt_object_categorization_loss")
         print(tgt_object_categorization_loss.item())
         exit()
+        """
 
         loss = task_cfg[task_id]["region_loss_weight"] * region_classification_loss + task_cfg[task_id][
             "contrast_loss_weight"] * contrastive_loss + task_cfg[task_id]["categorization_loss_weight"] * tgt_object_categorization_loss
