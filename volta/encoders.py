@@ -1324,13 +1324,13 @@ class BertForVLTasks(BertPreTrainedModel):
             #print(attn_score.size())
             #exit()
         elif self.task_cfg[task_id]["type"] == "VL-contrast-separated":
-            pred_scores, sim_scores, tgt_obj_class_scores, attn_scores = self.clfs_dict[task_id](input_txt, sequence_output_t, sequence_output_v, attention_mask, image_attention_mask)
-            pred_scores = pred_scores + ((1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
-            vil_prediction = (pred_scores, sim_scores, tgt_obj_class_scores, attn_scores)
-        elif self.task_cfg[task_id]["type"] == "VL-obj-categorize-contrast":
             pred_scores, sim_scores, attn_scores = self.clfs_dict[task_id](input_txt, sequence_output_t, sequence_output_v, attention_mask, image_attention_mask)
             pred_scores = pred_scores + ((1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
             vil_prediction = (pred_scores, sim_scores, attn_scores)
+        elif self.task_cfg[task_id]["type"] == "VL-obj-categorize-contrast":
+            pred_scores, sim_scores, tgt_obj_class_scores, attn_scores = self.clfs_dict[task_id](input_txt, sequence_output_t, sequence_output_v, attention_mask, image_attention_mask)
+            pred_scores = pred_scores + ((1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
+            vil_prediction = (pred_scores, sim_scores, tgt_obj_class_scores, attn_scores)
         elif self.task_cfg[task_id]["type"] == "VL-keywordmlp":
             vil_prediction, attn_score = self.clfs_dict[task_id](input_txt, sequence_output_t, sequence_output_v,
                                                                  attention_mask) + (
