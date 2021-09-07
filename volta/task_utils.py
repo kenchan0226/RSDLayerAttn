@@ -175,11 +175,14 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         # contrastive loss
         contrastive_loss = criterion["contrastive"](sim_scores, target, image_mask, task_cfg[task_id]["temperature"])
         # region classification loss
-        if task_cfg[task_id]["loss"] == "BCEInfoNCELoss" or task_cfg[task_id]["loss"] == "BCEListNet":
+        if task_cfg[task_id]["loss"].startswith("BCE"):
             region_classification_loss = criterion["region_classification"](pred_scores, target)
             region_classification_loss = region_classification_loss.mean() * target.size(1)
-        elif task_cfg[task_id]["loss"] == "ListNetInfoNCELoss":
-            region_classification_loss = criterion["region_classification"](pred_scores, target, image_mask, task_cfg[task_id]["listnet_temperature"])
+        elif task_cfg[task_id]["loss"].startswith("ListNet"):
+            region_classification_loss = criterion["region_classification"](pred_scores, target, image_mask,
+                                                                            task_cfg[task_id]["listnet_temperature"])
+        else:
+            raise ValueError
         # tgt object categorization loss
         tgt_object_categorization_loss = criterion["object_categorization"](tgt_obj_class_scores, ref_category_id.squeeze(1))
 
@@ -419,11 +422,13 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         # contrastive loss
         contrastive_loss = criterion["contrastive"](sim_scores, target, image_mask, task_cfg[task_id]["temperature"])
         # region classification loss
-        if task_cfg[task_id]["loss"] == "BCEInfoNCELoss" or task_cfg[task_id]["loss"] == "BCEListNet":
+        if task_cfg[task_id]["loss"].startswith("BCE"):
             region_classification_loss = criterion["region_classification"](pred_scores, target)
             region_classification_loss = region_classification_loss.mean() * target.size(1)
-        elif task_cfg[task_id]["loss"] == "ListNetInfoNCELoss":
+        elif task_cfg[task_id]["loss"].startswith("ListNet"):
             region_classification_loss = criterion["region_classification"](pred_scores, target, image_mask, task_cfg[task_id]["listnet_temperature"])
+        else:
+            raise ValueError
         # tgt object categorization loss
         tgt_object_categorization_loss = criterion["object_categorization"](tgt_obj_class_scores, ref_category_id.squeeze(1))
 
@@ -1015,11 +1020,14 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         # contrastive loss
         contrastive_loss = criterion["contrastive"](sim_scores, target, image_mask, task_cfg[task_id]["temperature"])
         # region classification loss
-        if task_cfg[task_id]["loss"] == "BCEInfoNCELoss" or task_cfg[task_id]["loss"] == "BCEListNet":
+        if task_cfg[task_id]["loss"].startswith("BCE"):
             region_classification_loss = criterion["region_classification"](pred_scores, target)
             region_classification_loss = region_classification_loss.mean() * target.size(1)
-        elif task_cfg[task_id]["loss"] == "ListNetInfoNCELoss":
-            region_classification_loss = criterion["region_classification"](pred_scores, target, image_mask, task_cfg[task_id]["listnet_temperature"])
+        elif task_cfg[task_id]["loss"].startswith("ListNet"):
+            region_classification_loss = criterion["region_classification"](pred_scores, target, image_mask,
+                                                                            task_cfg[task_id]["listnet_temperature"])
+        else:
+            raise ValueError
         # tgt object categorization loss
         tgt_object_categorization_loss = criterion["object_categorization"](tgt_obj_class_scores, ref_category_id.squeeze(1))
 
