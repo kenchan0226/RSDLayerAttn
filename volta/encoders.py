@@ -1748,8 +1748,8 @@ class AttnBasedContrastiveTgtObjCategorizationClassifier(nn.Module):
         pred_scores = self.out_mlp(self.dropout(torch.cat([t_context_expanded, sequence_output_v], dim=2)))
 
         # compute object classification output
-        #obj_class = self.obj_class_mlp(sequence_output_t[:, 0, :])
-        tgt_obj_class_scores = self.tgt_obj_class_mlp(t_context)
+        tgt_obj_class_scores = self.tgt_obj_class_mlp(sequence_output_t[:, 0, :])
+        #tgt_obj_class_scores = self.tgt_obj_class_mlp(t_context)
         # obj_class: [batch, num_classes]
         print("tgt_obj_class_scores")
         print(tgt_obj_class_scores.size())
