@@ -726,3 +726,30 @@ TASK52:
   contrast_loss_weight: 0.33
   categorization_loss_weight: 0.33
   num_obj_classes: 23
+TASK53:
+  name: talk2carTgtObjCategorize
+  type: VL-obj-categorize-contrast
+  loss: BCEInfoNCECELoss
+  process: normal
+  task_id: 53
+  dataroot: data/talk2car/annotations
+  features_h5path1: data/talk2car/resnet101_faster_rcnn_genome_imgfeats_centernet/volta/refcoco+_unc_dets36_feat.lmdb
+  features_h5path2: ''
+  train_annotations_jsonpath: ''
+  val_annotations_jsonpath: ''
+  max_seq_length: 80
+  max_region_num: 36
+  batch_size: 64
+  eval_batch_size: 256
+  train_split: train
+  val_split: val
+  lr: 0.0001
+  num_epoch: 20
+  clf_latent_size: 128
+  temperature: 0.5
+  num_clf_layers: 1
+  num_contrast_proj_layers: 1
+  region_loss_weight: 0.5
+  contrast_loss_weight: 0.25
+  categorization_loss_weight: 0.25
+  num_obj_classes: 23
