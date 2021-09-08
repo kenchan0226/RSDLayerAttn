@@ -981,6 +981,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         batch_score = torch.sum(select_target > 0.5).item()
 
         attn_scores = attn_scores.detach().cpu().tolist()
+        query_list = question.tolist()  # [batch, seq_len]
 
         # debug
         """
@@ -1012,7 +1013,8 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
                     "id": question_id[i].item(),
                     "target": select_idx[i].item(),
                     "IOU": select_target[i].item(),
-                    "attention_score": attn_scores[i]
+                    "attention_score": attn_scores[i],
+                    "query": dataloader.dataset._tokenizer.convert_ids_to_tokens(query_list[i])
                 }
             )
 
