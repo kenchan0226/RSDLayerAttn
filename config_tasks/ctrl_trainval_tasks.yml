@@ -678,7 +678,7 @@ TASK46:
   type: VL-seq-label
   loss: BCESequenceLabelLoss
   process: normal
-  task_id: 45
+  task_id: 46
   dataroot: data/talk2car/annotations
   features_h5path1: data/talk2car/resnet101_faster_rcnn_genome_imgfeats_centernet/volta/refcoco+_unc_dets36_feat.lmdb
   features_h5path2: ''
