@@ -1189,8 +1189,8 @@ class BertForVLTasks(BertPreTrainedModel):
                     )
                 else:
                     task2clf[task_id] = nn.Linear(config.v_hidden_size, 1)
-            elif task_type == "VL-multi-task":
-                print("VL-multi-task classifier")
+            elif task_type == "VL-seq-label":
+                print("VL-seq-label classifier")
                 # region classifier
                 if task_cfg[task_id].get("num_clf_layers", 1) == 2:
                     task2clf[str(task_id)+"region_classifier"] = torch.nn.Sequential(
@@ -1228,7 +1228,7 @@ class BertForVLTasks(BertPreTrainedModel):
             elif task_type == "VL-keywordmlp":
                 print("VL-keywordmlp classifier")
                 task2clf[task_id] = AttnBasedClassifier(config.hidden_size, config.v_hidden_size, dropout_prob, self.task_cfg[task_id].get("num_clf_layers", 1))
-            elif task_type == "VL-multi-task-contrast":
+            elif task_type == "VL-seq-label-contrast":
                 print("VL-contrast-multi-task classifiers")
                 # region classifier
                 task2clf[str(task_id)+"region_classifier"] = AttnBasedContrastiveClassifier(config.hidden_size, config.v_hidden_size, self.task_cfg[task_id]["clf_latent_size"], dropout_prob, self.task_cfg[task_id].get("num_contrast_proj_layers", 2))
@@ -1302,7 +1302,7 @@ class BertForVLTasks(BertPreTrainedModel):
         elif self.task_cfg[task_id]["type"] == "VL-binary-classifier":
             # NLVR
             vil_prediction = self.clfs_dict[task_id](pooled_output.view(-1, pooled_output.size(1) * 2))
-        elif self.task_cfg[task_id]["type"] == "VL-multi-task":
+        elif self.task_cfg[task_id]["type"] == "VL-seq-label":
             region_prediction = self.clfs_dict[str(task_id)+"region_classifier"](self.dropout(sequence_output_v)) + (
                     (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
             sequence_prediction = self.clfs_dict[str(task_id) + "token_classifier"](sequence_output_t)
