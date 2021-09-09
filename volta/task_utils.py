@@ -343,8 +343,12 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
 
     if task_cfg[task_id]["type"] == "V-logit-fuse":
         output_all_encoded_layers = True
-
-    vil_prediction, vision_prediction, linguisic_prediction, _ = model(question, features, spatials, task_id,
+    if output_all_encoded_layers:
+        vil_prediction, vision_prediction, linguisic_prediction, _, _, _ = model(question, features, spatials, task_id,
+                                                                           segment_ids, input_mask, image_mask,
+                                                                           output_all_encoded_layers)
+    else:
+        vil_prediction, vision_prediction, linguisic_prediction, _ = model(question, features, spatials, task_id,
                                                                        segment_ids, input_mask, image_mask, output_all_encoded_layers)
     # for different task, we use different output to calculate the loss.
     if task_cfg[task_id]["type"] == "VL-classifier":
