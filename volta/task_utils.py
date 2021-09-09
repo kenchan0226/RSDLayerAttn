@@ -106,8 +106,14 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
     if task_cfg[task_id]["type"] == "V-logit-fuse":
         output_all_encoded_layers = True
 
-    vil_prediction, vision_prediction, linguisic_prediction, _ = model(question, features, spatials, task_id,
-                                                                       segment_ids, input_mask, image_mask, output_all_encoded_layers)
+    if output_all_encoded_layers:
+        vil_prediction, vision_prediction, linguisic_prediction, _, _, _ = model(question, features, spatials, task_id,
+                                                                                 segment_ids, input_mask, image_mask,
+                                                                                 output_all_encoded_layers)
+    else:
+        vil_prediction, vision_prediction, linguisic_prediction, _ = model(question, features, spatials, task_id,
+                                                                           segment_ids, input_mask, image_mask,
+                                                                           output_all_encoded_layers)
 
     if task_cfg[task_id]["type"] == "VL-classifier":
         loss = criterion(vil_prediction, target)
@@ -813,8 +819,16 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         output_all_encoded_layers = True
 
     with torch.no_grad():
-        vil_prediction, vision_prediction, linguisic_prediction, _ = model(question, features, spatials, task_id,
-                                                                           segment_ids, input_mask, image_mask, output_all_encoded_layers)
+        if output_all_encoded_layers:
+            vil_prediction, vision_prediction, linguisic_prediction, _, _, _ = model(question, features, spatials,
+                                                                                     task_id,
+                                                                                     segment_ids, input_mask,
+                                                                                     image_mask,
+                                                                                     output_all_encoded_layers)
+        else:
+            vil_prediction, vision_prediction, linguisic_prediction, _ = model(question, features, spatials, task_id,
+                                                                               segment_ids, input_mask, image_mask,
+                                                                               output_all_encoded_layers)
 
     if task_cfg[task_id]["type"] == "VL-classifier":
         logits = torch.max(vil_prediction, 1)[1].data  # argmax
