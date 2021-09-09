@@ -1191,7 +1191,7 @@ class BertForVLTasks(BertPreTrainedModel):
                     task2clf[task_id] = nn.Linear(config.v_hidden_size, 1)
             elif task_type == "V-logit-fuse":
                 print("V-logit-fuse")
-                task2clf[task_id] = MultiLayerFusionClassifier(len(config.vt_attn_sublayers), config.v_hidden_size, config.v_attention_probs_dropout_prob, task_cfg[task_id].get("num_clf_layers", 1))
+                task2clf[task_id] = MultiLayerFusionClassifier(config.v_ff_sublayers, config.v_hidden_size, config.v_attention_probs_dropout_prob, task_cfg[task_id].get("num_clf_layers", 1))
             elif task_type == "VL-seq-label":
                 print("VL-seq-label classifier")
                 # region classifier
@@ -1287,9 +1287,9 @@ class BertForVLTasks(BertPreTrainedModel):
         sequence_output_t = encoded_layers_t
         sequence_output_v = encoded_layers_v
         # debug
-        print("sequence_output_t")
-        print(len(sequence_output_t))
-        print(sequence_output_t[0].size())
+        print("sequence_output_v")
+        print(len(sequence_output_v))
+        print(sequence_output_v[0].size())
         # [batch, seq_len, hidden_size]
 
         linguistic_prediction, vision_prediction = None, None
@@ -1775,7 +1775,7 @@ class AttnBasedContrastiveTgtObjCategorizationClassifier(nn.Module):
 
 
 class MultiLayerFusionClassifier(nn.Module):
-    def __init__(self, num_layers, v_hidden_size, dropout_prob=0.1, num_clf_layers=1):
+    def __init__(self, layer_indices, v_hidden_size, dropout_prob=0.1, num_clf_layers=1):
         super(MultiLayerFusionClassifier, self).__init__()
         if num_clf_layers == 1:
             self.clf = nn.Linear(v_hidden_size, 1)
@@ -1788,15 +1788,21 @@ class MultiLayerFusionClassifier(nn.Module):
                     )
         else:
             raise ValueError
+        num_layers = len(layer_indices)
+        self.layer_indices = layer_indices
         self.fusion_func = nn.Linear(num_layers * v_hidden_size, v_hidden_size)
         self.dropout = nn.Dropout(dropout_prob)
+        print("MultiLayerFusionClassifier built")
+        print("Indices: ", layer_indices)
+        print("No. of layers: ", num_layers)
 
     def forward(self, sequence_output_v_all):
         """
         :param sequence_output_v_all: a tuple of tensor [batch, v_seq_len, v_hidden_size]
         :return:
         """
-        sequence_output_v_all = torch.cat(sequence_output_v_all, dim=2)
+        target_layers = [sequence_output_v_all[idx] for idx in self.layer_indices]
+        sequence_output_v_all = torch.cat(target_layers, dim=2)
         print("sequence_output_v_all")
         print(sequence_output_v_all.size())
         fused_representation_v = self.fusion_func(sequence_output_v_all)
