@@ -1287,9 +1287,9 @@ class BertForVLTasks(BertPreTrainedModel):
         sequence_output_t = encoded_layers_t
         sequence_output_v = encoded_layers_v
         # debug
-        print("sequence_output_v")
-        print(len(sequence_output_v))
-        print(sequence_output_v[0].size())
+        #print("sequence_output_v")
+        #print(len(sequence_output_v))
+        #print(sequence_output_v[0].size())
         # [batch, seq_len, hidden_size]
 
         linguistic_prediction, vision_prediction = None, None
@@ -1315,7 +1315,7 @@ class BertForVLTasks(BertPreTrainedModel):
             vil_prediction = self.clfs_dict[task_id](sequence_output_v) + (
                 (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
             # debug
-            exit()
+            #exit()
         elif self.task_cfg[task_id]["type"] == "VL-binary-classifier":
             # NLVR
             vil_prediction = self.clfs_dict[task_id](pooled_output.view(-1, pooled_output.size(1) * 2))
@@ -1803,9 +1803,9 @@ class MultiLayerFusionClassifier(nn.Module):
         """
         target_layers = [sequence_output_v_all[idx] for idx in self.layer_indices]
         sequence_output_v_all = torch.cat(target_layers, dim=2)
-        print("sequence_output_v_all")
-        print(sequence_output_v_all.size())
+        #print("sequence_output_v_all")
+        #print(sequence_output_v_all.size())
         fused_representation_v = self.fusion_func(sequence_output_v_all)
-        print("fused_representation_v")
-        print(fused_representation_v.size())
+        #print("fused_representation_v")
+        #print(fused_representation_v.size())
         return self.clf(self.dropout(fused_representation_v))
