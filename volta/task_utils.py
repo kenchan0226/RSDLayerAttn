@@ -49,6 +49,8 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         features, spatials, image_mask, question, target, input_mask, segment_ids, question_id = batch
 
     batch_size = features.size(0)
+    output_all_encoded_layers = False
+
     if task_cfg[task_id]["process"] in ["dialog"]:
         raise NotImplementedError("dialog process for validation")
 
@@ -101,8 +103,11 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         segment_ids = segment_ids.repeat(1, 2)
         segment_ids = segment_ids.view(batch_size * 2, int(segment_ids.size(1) / 2))
 
+    if task_cfg[task_id]["type"] == "V-logit-fuse":
+        output_all_encoded_layers = True
+
     vil_prediction, vision_prediction, linguisic_prediction, _ = model(question, features, spatials, task_id,
-                                                                       segment_ids, input_mask, image_mask)
+                                                                       segment_ids, input_mask, image_mask, output_all_encoded_layers)
 
     if task_cfg[task_id]["type"] == "VL-classifier":
         loss = criterion(vil_prediction, target)
@@ -249,6 +254,8 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         features, spatials, image_mask, question, target, input_mask, segment_ids, question_id = batch
 
     batch_size = features.size(0)
+    output_all_encoded_layers = False
+
     if task_cfg[task_id]["process"] in ["dialog"]:
         max_num_bbox = features.size(1)
         nround = question.size(1)
@@ -334,8 +341,11 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         segment_ids = segment_ids.repeat(1, 2)
         segment_ids = segment_ids.view(batch_size * 2, int(segment_ids.size(1) / 2))
 
+    if task_cfg[task_id]["type"] == "V-logit-fuse":
+        output_all_encoded_layers = True
+
     vil_prediction, vision_prediction, linguisic_prediction, _ = model(question, features, spatials, task_id,
-                                                                       segment_ids, input_mask, image_mask)
+                                                                       segment_ids, input_mask, image_mask, output_all_encoded_layers)
     # for different task, we use different output to calculate the loss.
     if task_cfg[task_id]["type"] == "VL-classifier":
         loss = criterion(vil_prediction, target)
@@ -704,6 +714,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         features, spatials, image_mask, question, target, input_mask, segment_ids, question_id = batch
 
     batch_size = features.size(0)
+    output_all_encoded_layers = False
 
     if task_cfg[task_id]["process"] in ["dialog"]:
         max_num_bbox = features.size(1)
@@ -794,9 +805,12 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         segment_ids = segment_ids.repeat(1, 2)
         segment_ids = segment_ids.view(batch_size * 2, int(segment_ids.size(1) / 2))
 
+    if task_cfg[task_id]["type"] == "V-logit-fuse":
+        output_all_encoded_layers = True
+
     with torch.no_grad():
         vil_prediction, vision_prediction, linguisic_prediction, _ = model(question, features, spatials, task_id,
-                                                                           segment_ids, input_mask, image_mask)
+                                                                           segment_ids, input_mask, image_mask, output_all_encoded_layers)
 
     if task_cfg[task_id]["type"] == "VL-classifier":
         logits = torch.max(vil_prediction, 1)[1].data  # argmax

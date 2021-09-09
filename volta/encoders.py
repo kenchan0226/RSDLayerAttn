@@ -1178,7 +1178,7 @@ class BertForVLTasks(BertPreTrainedModel):
                 task2clf[task_id] = nn.Linear(config.pooler_size, 3)  # for Visual Entailiment tasks
             elif task_type == "VL-logit":
                 task2clf[task_id] = nn.Linear(config.pooler_size, 1)
-            elif task_type.startswith("V-logit"):
+            elif task_type == "V-logit":
                 print("VL-logit classifier")
                 if task_cfg[task_id].get("num_clf_layers", 1) == 2:
                     task2clf[task_id] = torch.nn.Sequential(
@@ -1189,6 +1189,9 @@ class BertForVLTasks(BertPreTrainedModel):
                     )
                 else:
                     task2clf[task_id] = nn.Linear(config.v_hidden_size, 1)
+            elif task_type == "V-logit-fuse":
+                print("V-logit-fuse")
+                task2clf[task_id] = MultiLayerFusionClassifier(len(config.vt_attn_sublayers), config.v_hidden_size, config.v_attention_probs_dropout_prob, task_cfg[task_id].get("num_clf_layers", 1))
             elif task_type == "VL-seq-label":
                 print("VL-seq-label classifier")
                 # region classifier
@@ -1273,12 +1276,21 @@ class BertForVLTasks(BertPreTrainedModel):
             output_all_encoded_layers=output_all_encoded_layers,
             output_all_attention_masks=output_all_attention_masks,
         )
+        """
         if output_all_encoded_layers:
             sequence_output_t = encoded_layers_t[-1]
             sequence_output_v = encoded_layers_v[-1]
         else:
             sequence_output_t = encoded_layers_t
             sequence_output_v = encoded_layers_v
+        """
+        sequence_output_t = encoded_layers_t
+        sequence_output_v = encoded_layers_v
+        # debug
+        print("sequence_output_t")
+        print(len(sequence_output_t))
+        print(sequence_output_t[0].size())
+        # [batch, seq_len, hidden_size]
 
         linguistic_prediction, vision_prediction = None, None
 
@@ -1295,10 +1307,15 @@ class BertForVLTasks(BertPreTrainedModel):
         else:
             raise ValueError("Invalid fusion method: %s" % self.fusion_method)
 
-        if self.task_cfg[task_id]["type"].startswith("V-logit"):
+        if self.task_cfg[task_id]["type"] == "V-logit":
             vil_prediction = self.clfs_dict[task_id](self.dropout(sequence_output_v)) + (
                 (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
             # vil_prediction: [batch, 37, 1]
+        elif self.task_cfg[task_id]["type"] == "V-logit-fuse":
+            vil_prediction = self.clfs_dict[task_id](sequence_output_v) + (
+                (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
+            # debug
+            exit()
         elif self.task_cfg[task_id]["type"] == "VL-binary-classifier":
             # NLVR
             vil_prediction = self.clfs_dict[task_id](pooled_output.view(-1, pooled_output.size(1) * 2))
@@ -1755,3 +1772,34 @@ class AttnBasedContrastiveTgtObjCategorizationClassifier(nn.Module):
         #print(tgt_obj_class_scores.size())
 
         return pred_scores, sim_scores, tgt_obj_class_scores, attn_score
+
+
+class MultiLayerFusionClassifier(nn.Module):
+    def __init__(self, num_layers, v_hidden_size, dropout_prob=0.1, num_clf_layers=1):
+        super(MultiLayerFusionClassifier, self).__init__()
+        if num_clf_layers == 1:
+            self.clf = nn.Linear(v_hidden_size, 1)
+        elif num_clf_layers == 2:
+            self.clf = torch.nn.Sequential(
+                        nn.Linear(v_hidden_size, v_hidden_size),
+                        GeLU(),
+                        torch.nn.Dropout(dropout_prob, inplace=False),
+                        nn.Linear(v_hidden_size, 1)
+                    )
+        else:
+            raise ValueError
+        self.fusion_func = nn.Linear(num_layers * v_hidden_size, v_hidden_size)
+        self.dropout = nn.Dropout(dropout_prob)
+
+    def forward(self, sequence_output_v_all):
+        """
+        :param sequence_output_v_all: a tuple of tensor [batch, v_seq_len, v_hidden_size]
+        :return:
+        """
+        sequence_output_v_all = torch.cat(sequence_output_v_all, dim=2)
+        print("sequence_output_v_all")
+        print(sequence_output_v_all.size())
+        fused_representation_v = self.fusion_func(sequence_output_v_all)
+        print("fused_representation_v")
+        print(fused_representation_v.size())
+        return self.clf(self.dropout(fused_representation_v))
