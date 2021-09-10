@@ -1191,7 +1191,10 @@ class BertForVLTasks(BertPreTrainedModel):
                     task2clf[task_id] = nn.Linear(config.v_hidden_size, 1)
             elif task_type == "V-logit-fuse":
                 print("V-logit-fuse")
-                task2clf[task_id] = MultiLayerFusionClassifier(config.v_ff_sublayers, config.v_hidden_size, config.v_attention_probs_dropout_prob, task_cfg[task_id].get("num_clf_layers", 1))
+                #task2clf[task_id] = MultiLayerFusionClassifier(config.v_ff_sublayers, config.v_hidden_size, config.v_attention_probs_dropout_prob, task_cfg[task_id].get("num_clf_layers", 1))
+                task2clf[task_id] = MultiLayerFusionClassifier(task_cfg[task_id].fuse_layers, config.v_hidden_size,
+                                                               config.v_attention_probs_dropout_prob,
+                                                               task_cfg[task_id].get("num_clf_layers", 1))
             elif task_type == "VL-seq-label":
                 print("VL-seq-label classifier")
                 # region classifier

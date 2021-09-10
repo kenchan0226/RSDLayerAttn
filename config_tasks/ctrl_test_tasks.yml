@@ -269,3 +269,5 @@ TASK47:
   eval_batch_size: 512
   train_split: ''
   val_split: test
+  num_clf_layers: 1
+  fuse_layers: [1,3,5,7,9,11,13,15,17,19,21,23]
