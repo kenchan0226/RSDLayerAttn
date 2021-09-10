@@ -143,9 +143,6 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         batch_score = torch.sum(select_target > 0.5).item()
     elif task_cfg[task_id]["type"] == "V-logit-fuse-text-vision":
         pred_scores, attn_scores = vil_prediction
-        print("pred_scores")
-        print(pred_scores.size())
-        exit()
         loss = criterion(pred_scores, target)
         loss = loss.mean() * target.size(1)
         _, select_idx = torch.max(vil_prediction, dim=1)
@@ -395,6 +392,9 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         batch_score = float(torch.sum(select_target > 0.5)) / batch_size
     elif task_cfg[task_id]["type"] == "V-logit-fuse-text-vision":
         pred_scores, attn_scores = vil_prediction
+        print("pred_scores")
+        print(pred_scores.size())
+        exit()
         loss = criterion(pred_scores, target)
         loss = loss.mean() * target.size(1)
         _, select_idx = torch.max(vil_prediction, dim=1)
