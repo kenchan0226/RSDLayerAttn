@@ -271,3 +271,22 @@ TASK47:
   val_split: test
   num_clf_layers: 1
   fuse_layers: [1,3,5,7,9,11,13,15,17,19,21,23]
+TASK49:
+  name: talk2car
+  type: V-logit-fuse
+  loss: BCEWithLogitLoss
+  process: normal
+  task_id: 49
+  dataroot: data/talk2car/annotations
+  features_h5path1: data/talk2car/resnet101_faster_rcnn_genome_imgfeats_centernet/volta/refcoco+_unc_dets36_feat.lmdb
+  features_h5path2: ''
+  train_annotations_jsonpath: ''
+  val_annotations_jsonpath: ''
+  max_seq_length: 80
+  max_region_num: 36
+  batch_size: 32
+  eval_batch_size: 512
+  train_split: ''
+  val_split: test
+  num_clf_layers: 1
+  fuse_layers: [19,21,23]
