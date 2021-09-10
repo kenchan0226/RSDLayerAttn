@@ -1332,10 +1332,10 @@ class BertForVLTasks(BertPreTrainedModel):
                 dtype=next(self.parameters()).dtype)
             vil_prediction = (pred_scores, attn_scores)
             # debug
-            print("pred_scores")
-            print(pred_scores.size())
-            print("attn_scores")
-            print(attn_scores.size())
+            #print("pred_scores")
+            #print(pred_scores.size())
+            #print("attn_scores")
+            #print(attn_scores.size())
         elif self.task_cfg[task_id]["type"] == "VL-binary-classifier":
             # NLVR
             vil_prediction = self.clfs_dict[task_id](pooled_output.view(-1, pooled_output.size(1) * 2))
@@ -1885,11 +1885,11 @@ class TextAttnLayerFusedClassifier(nn.Module):
         # layer fusion on region
         target_layers_v = [sequence_output_v_all[idx] for idx in self.layer_indices]
         target_layers_v_tensor = torch.cat(target_layers_v, dim=2)  # [batch, v_seq_len, v_hidden_size * num_layers]
-        print("target_layers_v_tensor")
-        print(target_layers_v_tensor.size())
+        #print("target_layers_v_tensor")
+        #print(target_layers_v_tensor.size())
         fused_representation_v = self.fusion_func(target_layers_v_tensor)  # [batch, v_seq_len, v_hidden_size]
-        print("fused_representation_v")
-        print(fused_representation_v.size())
+        #print("fused_representation_v")
+        #print(fused_representation_v.size())
 
         # attention on text
         sequence_output_t = sequence_output_t_all[-1]  # last layer text representation
@@ -1897,11 +1897,11 @@ class TextAttnLayerFusedClassifier(nn.Module):
         t_context, attn_score = self.compute_text_attentive_feature(input_txt, sequence_output_t, attn_mask_t)
         # t_context: [batch_size, t_hidden_size]
         t_context_expanded = t_context.unsqueeze(1).expand(-1, v_seq_len, -1)  # [batch_size, v_seq_len, t_hidden_size]
-        print("t_context_expanded")
-        print(t_context_expanded.size())
+        #print("t_context_expanded")
+        #print(t_context_expanded.size())
 
         # compute prediction score
         pred_scores = self.out_mlp( self.dropout( torch.cat([t_context_expanded, fused_representation_v], dim=2) ) )
-        print("pred_scores")
-        print(pred_scores.size())
+        #print("pred_scores")
+        #print(pred_scores.size())
         return pred_scores, attn_score
