@@ -1345,7 +1345,6 @@ class BertForVLTasks(BertPreTrainedModel):
             sequence_prediction = self.clfs_dict[str(task_id) + "token_classifier"](sequence_output_t)
             vil_prediction = (region_prediction, sequence_prediction)
         elif self.task_cfg[task_id]["type"] == "VL-contrast":
-            # TODO: output attention score
             #print("sequence_output_t:")
             #print(sequence_output_t.size())
             #print("sequence_output_v:")
@@ -1850,7 +1849,8 @@ class TextAttnLayerFusedClassifier(nn.Module):
 
         num_layers = len(layer_indices)
         self.layer_indices = layer_indices
-        self.fusion_func = nn.Linear(num_layers * v_hidden_size, v_hidden_size)
+        self.region_fusion_func = nn.Linear(num_layers * v_hidden_size, v_hidden_size)
+        self.text_fusion_func = nn.Linear(num_layers * v_hidden_size, v_hidden_size)
         self.dropout = nn.Dropout(dropout_prob)
         print("TextAttnRegionLayerFusedClassifier built")
         print("Indices: ", layer_indices)
@@ -1887,14 +1887,22 @@ class TextAttnLayerFusedClassifier(nn.Module):
         target_layers_v_tensor = torch.cat(target_layers_v, dim=2)  # [batch, v_seq_len, v_hidden_size * num_layers]
         #print("target_layers_v_tensor")
         #print(target_layers_v_tensor.size())
-        fused_representation_v = self.fusion_func(target_layers_v_tensor)  # [batch, v_seq_len, v_hidden_size]
+        fused_representation_v = self.region_fusion_func(target_layers_v_tensor)  # [batch, v_seq_len, v_hidden_size]
         #print("fused_representation_v")
         #print(fused_representation_v.size())
 
         # attention on text
-        sequence_output_t = sequence_output_t_all[-1]  # last layer text representation
+        #sequence_output_t = sequence_output_t_all[-1]  # last layer text representation
+        target_layers_t = [sequence_output_t_all[idx] for idx in self.layer_indices]
+        target_layers_t_tensor = torch.cat(target_layers_t, dim=2)  # [batch, t_seq_len, t_hidden_size * num_layers]
+        fused_representation_t = self.text_fusion_func(target_layers_t_tensor)  # [batch, t_seq_len, t_hidden_size]
+        print("target_layers_t_tensor")
+        print(target_layers_t_tensor.size())
+        print("fused_representation_t")
+        print(fused_representation_t.size())
+        exit()
         v_seq_len = fused_representation_v.size(1)
-        t_context, attn_score = self.compute_text_attentive_feature(input_txt, sequence_output_t, attn_mask_t)
+        t_context, attn_score = self.compute_text_attentive_feature(input_txt, fused_representation_t, attn_mask_t)
         # t_context: [batch_size, t_hidden_size]
         t_context_expanded = t_context.unsqueeze(1).expand(-1, v_seq_len, -1)  # [batch_size, v_seq_len, t_hidden_size]
         #print("t_context_expanded")
