@@ -103,7 +103,7 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         segment_ids = segment_ids.repeat(1, 2)
         segment_ids = segment_ids.view(batch_size * 2, int(segment_ids.size(1) / 2))
 
-    if task_cfg[task_id]["type"] == "V-logit-fuse":
+    if task_cfg[task_id]["type"].startswith("V-logit-fuse"):
         output_all_encoded_layers = True
 
     if output_all_encoded_layers:
@@ -141,7 +141,17 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         #print(select_idx)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
-
+    elif task_cfg[task_id]["type"] == "V-logit-fuse-text-vision":
+        pred_scores, attn_scores = vil_prediction
+        print("pred_scores")
+        print(pred_scores.size())
+        exit()
+        loss = criterion(pred_scores, target)
+        loss = loss.mean() * target.size(1)
+        _, select_idx = torch.max(vil_prediction, dim=1)
+        # print(select_idx)
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
     elif task_cfg[task_id]["type"] == "VL-seq-label":
         region_prediction, sequence_prediction = vil_prediction
         region_classification_loss = criterion["region_classification"](region_prediction, target)
@@ -347,8 +357,9 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         segment_ids = segment_ids.repeat(1, 2)
         segment_ids = segment_ids.view(batch_size * 2, int(segment_ids.size(1) / 2))
 
-    if task_cfg[task_id]["type"] == "V-logit-fuse":
+    if task_cfg[task_id]["type"].startswith("V-logit-fuse"):
         output_all_encoded_layers = True
+
     if output_all_encoded_layers:
         vil_prediction, vision_prediction, linguisic_prediction, _, _, _ = model(question, features, spatials, task_id,
                                                                            segment_ids, input_mask, image_mask,
@@ -382,7 +393,14 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         _, select_idx = torch.max(vil_prediction, dim=1)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = float(torch.sum(select_target > 0.5)) / batch_size
-
+    elif task_cfg[task_id]["type"] == "V-logit-fuse-text-vision":
+        pred_scores, attn_scores = vil_prediction
+        loss = criterion(pred_scores, target)
+        loss = loss.mean() * target.size(1)
+        _, select_idx = torch.max(vil_prediction, dim=1)
+        # print(select_idx)
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
     elif task_cfg[task_id]["type"] == "VL-seq-label":
         region_prediction, sequence_prediction = vil_prediction
         region_classification_loss = criterion["region_classification"](region_prediction, target)
@@ -815,7 +833,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         segment_ids = segment_ids.repeat(1, 2)
         segment_ids = segment_ids.view(batch_size * 2, int(segment_ids.size(1) / 2))
 
-    if task_cfg[task_id]["type"] == "V-logit-fuse":
+    if task_cfg[task_id]["type"].startswith("V-logit-fuse"):
         output_all_encoded_layers = True
 
     with torch.no_grad():
@@ -905,6 +923,44 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
             loss = loss.mean() * target.size(1)
         elif task_cfg[task_id]["loss"] == "ListNetLoss":
             loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
+        #print()
+        #print(vil_prediction.size())
+        #print("vil_prediction")
+        #print(vil_prediction[0,:,0])
+        # vli_predition: [batch, num_regions, 1]
+        _, select_idx = torch.max(vil_prediction, dim=1)
+        #print(select_idx.size())
+        #print("idx")
+        #print(select_idx[0])
+        #print("target")
+        #print(target.size())
+        #print("spatials_ori")
+        #print(spatials_ori[select_idx[0],:4])
+        #exit()
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
+
+        for i in range(select_idx.size(0)):
+            bbox_item = spatials_ori[i, select_idx[i],:4].cpu().detach().tolist()
+            bbox_item = bbox_item[0]
+            bbox.append(
+              {
+                question_id[i].item(): [bbox_item[0], bbox_item[1], bbox_item[2]-bbox_item[0], bbox_item[3]-bbox_item[1]]
+                #question_id[i].item(): spatials_ori[i, select_idx[i],:4].cpu().detach().tolist()
+              }
+            )
+            results.append(
+                {
+                    "id": question_id[i].item(),
+                    "target": select_idx[i].item(),
+                    "IOU": select_target[i].item(),
+                }
+            )
+
+    elif task_cfg[task_id]["type"] == "V-logit-fuse-text-vision":
+        pred_scores, attn_scores = vil_prediction
+        loss = criterion(pred_scores, target)
+        loss = loss.mean() * target.size(1)
         #print()
         #print(vil_prediction.size())
         #print("vil_prediction")

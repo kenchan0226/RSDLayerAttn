@@ -1195,6 +1195,11 @@ class BertForVLTasks(BertPreTrainedModel):
                 task2clf[task_id] = MultiLayerFusionClassifier(task_cfg[task_id].fuse_layers, config.v_hidden_size,
                                                                config.v_attention_probs_dropout_prob,
                                                                task_cfg[task_id].get("num_clf_layers", 1))
+            elif task_type == "V-logit-fuse-text-vision":
+                print("V-logit-fuse-text-vision")
+                task2clf[task_id] = TextAttnLayerFusedClassifier(task_cfg[task_id].fuse_layers, config.t_hidden_size, config.v_hidden_size,
+                                                               config.v_attention_probs_dropout_prob,
+                                                               task_cfg[task_id].get("num_clf_layers", 1))
             elif task_type == "VL-seq-label":
                 print("VL-seq-label classifier")
                 # region classifier
@@ -1319,6 +1324,18 @@ class BertForVLTasks(BertPreTrainedModel):
                 (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
             # debug
             #exit()
+        elif self.task_cfg[task_id]["type"] == "V-logit-fuse-text-vision":
+            pred_scores, attn_scores = self.clfs_dict[task_id](input_txt, sequence_output_t, sequence_output_v,
+                                                                 attention_mask)
+            # mask out padding
+            pred_scores += + ((1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(
+                dtype=next(self.parameters()).dtype)
+            vil_prediction = (pred_scores, attn_scores)
+            # debug
+            print("pred_scores")
+            print(pred_scores.size())
+            print("attn_scores")
+            print(attn_scores.size())
         elif self.task_cfg[task_id]["type"] == "VL-binary-classifier":
             # NLVR
             vil_prediction = self.clfs_dict[task_id](pooled_output.view(-1, pooled_output.size(1) * 2))
@@ -1812,3 +1829,79 @@ class MultiLayerFusionClassifier(nn.Module):
         #print("fused_representation_v")
         #print(fused_representation_v.size())
         return self.clf(self.dropout(fused_representation_v))
+
+
+class TextAttnLayerFusedClassifier(nn.Module):
+    def __init__(self, layer_indices, t_hidden_size, v_hidden_size, dropout_prob=0.1, num_clf_layers=1):
+        super(TextAttnLayerFusedClassifier, self).__init__()
+        self.self_attn = nn.Linear(t_hidden_size, 1)
+        if num_clf_layers == 1:
+            self.out_mlp = nn.Linear(t_hidden_size + v_hidden_size, 1)
+        elif num_clf_layers == 2:
+            self.out_mlp = torch.nn.Sequential(
+                nn.Linear(t_hidden_size + v_hidden_size, v_hidden_size),
+                GeLU(),
+                torch.nn.Dropout(dropout_prob),
+                nn.Linear(v_hidden_size, 1)
+            )
+        else:
+            raise ValueError
+        self.dropout = torch.nn.Dropout(dropout_prob)
+
+        num_layers = len(layer_indices)
+        self.layer_indices = layer_indices
+        self.fusion_func = nn.Linear(num_layers * v_hidden_size, v_hidden_size)
+        self.dropout = nn.Dropout(dropout_prob)
+        print("TextAttnRegionLayerFusedClassifier built")
+        print("Indices: ", layer_indices)
+        print("No. of layers: ", num_layers)
+
+    def compute_text_attentive_feature(self, input_txt, sequence_output_t, attn_mask_t):
+        # Compute self attention over text
+        attn_score_unnormalized = self.self_attn(sequence_output_t).squeeze(2)  # [batch, seq_len]
+
+        # Mask out CLS and SEP
+        #attn_mask_t = attn_mask_t * torch.ne(input_txt, 101) * torch.ne(input_txt, 102)
+        attn_score = masked_softmax(attn_score_unnormalized, mask=attn_mask_t, dim=1)  # [batch, seq_len]
+        # print("attn_score")
+        # print(attn_score.size())
+        # print(attn_score[0,:].detach().cpu().numpy())
+        attn_score = attn_score.unsqueeze(1)  # [batch_size, 1, seq_len]
+        t_context = torch.bmm(attn_score, sequence_output_t)  # [batch_size, 1, t_hidden_size]
+        t_context = t_context.squeeze(1)  # [batch_size, t_hidden_size]
+        attn_score = attn_score.squeeze(1)  # [batch_size, seq_len]
+
+        return t_context, attn_score
+
+    def forward(self, input_txt, sequence_output_t_all, sequence_output_v_all, attn_mask_t):
+        """
+        :param input_txt: [batch, seq_len]
+        :param sequence_output_t_all: a tuple of [batch, seq_len, t_hidden_size]
+        :param sequence_output_v_all: a tuple of [batch, v_seq_len, v_hidden_size]
+        :param attn_mask_t: [batch, seq_len]
+        :return: pred_scores: [batch_size, v_seq_len, 1], t_weights: [batch, seq_len]
+        """
+
+        # layer fusion on region
+        target_layers_v = [sequence_output_v_all[idx] for idx in self.layer_indices]
+        target_layers_v_tensor = torch.cat(target_layers_v, dim=2)  # [batch, v_seq_len, v_hidden_size * num_layers]
+        print("target_layers_v_tensor")
+        print(target_layers_v_tensor.size())
+        fused_representation_v = self.fusion_func(target_layers_v_tensor)  # [batch, v_seq_len, v_hidden_size]
+        print("fused_representation_v")
+        print(fused_representation_v.size())
+
+        # attention on text
+        sequence_output_t = sequence_output_t_all[-1]  # last layer text representation
+        v_seq_len = fused_representation_v.size(1)
+        t_context, attn_score = self.compute_text_attentive_feature(input_txt, sequence_output_t, attn_mask_t)
+        # t_context: [batch_size, t_hidden_size]
+        t_context_expanded = t_context.unsqueeze(1).expand(-1, v_seq_len, -1)  # [batch_size, v_seq_len, t_hidden_size]
+        print("t_context_expanded")
+        print(t_context_expanded.size())
+
+        # compute prediction score
+        pred_scores = self.out_mlp( self.dropout( torch.cat([t_context_expanded, fused_representation_v], dim=2) ) )
+        print("pred_scores")
+        print(pred_scores.size())
+        return pred_scores, attn_score
