@@ -1896,11 +1896,11 @@ class TextAttnLayerFusedClassifier(nn.Module):
         target_layers_t = [sequence_output_t_all[idx] for idx in self.layer_indices]
         target_layers_t_tensor = torch.cat(target_layers_t, dim=2)  # [batch, t_seq_len, t_hidden_size * num_layers]
         fused_representation_t = self.text_fusion_func(target_layers_t_tensor)  # [batch, t_seq_len, t_hidden_size]
-        print("target_layers_t_tensor")
-        print(target_layers_t_tensor.size())
-        print("fused_representation_t")
-        print(fused_representation_t.size())
-        exit()
+        #print("target_layers_t_tensor")
+        #print(target_layers_t_tensor.size())
+        #print("fused_representation_t")
+        #print(fused_representation_t.size())
+        #exit()
         v_seq_len = fused_representation_v.size(1)
         t_context, attn_score = self.compute_text_attentive_feature(input_txt, fused_representation_t, attn_mask_t)
         # t_context: [batch_size, t_hidden_size]
