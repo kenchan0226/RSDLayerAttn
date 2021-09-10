@@ -1328,7 +1328,7 @@ class BertForVLTasks(BertPreTrainedModel):
             pred_scores, attn_scores = self.clfs_dict[task_id](input_txt, sequence_output_t, sequence_output_v,
                                                                  attention_mask)
             # mask out padding
-            pred_scores += + ((1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(
+            pred_scores = pred_scores + ((1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(
                 dtype=next(self.parameters()).dtype)
             vil_prediction = (pred_scores, attn_scores)
             # debug
