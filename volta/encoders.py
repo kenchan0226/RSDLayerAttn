@@ -1197,7 +1197,7 @@ class BertForVLTasks(BertPreTrainedModel):
                                                                task_cfg[task_id].get("num_clf_layers", 1))
             elif task_type == "V-logit-fuse-text-vision":
                 print("V-logit-fuse-text-vision")
-                task2clf[task_id] = TextAttnLayerFusedClassifier(task_cfg[task_id].fuse_layers, config.t_hidden_size, config.v_hidden_size,
+                task2clf[task_id] = TextAttnLayerFusedClassifier(task_cfg[task_id].fuse_layers, config.hidden_size, config.v_hidden_size,
                                                                config.v_attention_probs_dropout_prob,
                                                                task_cfg[task_id].get("num_clf_layers", 1))
             elif task_type == "VL-seq-label":
