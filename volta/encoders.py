@@ -1932,22 +1932,21 @@ class MultiLayerFineAttnFusionClassifier(nn.Module):
         :return:
         """
         batch_size, v_seq_len, v_hidden_size = sequence_output_v_all[-1].size()
-        print(len(sequence_output_v_all))
-        print(sequence_output_v_all[0].size())
+        #print(len(sequence_output_v_all))
+        #print(sequence_output_v_all[0].size())
         target_layers = [sequence_output_v_all[idx] for idx in self.layer_indices]
         target_layers_tensor = torch.stack(target_layers, dim=2)  # [batch, v_seq_len, num_layers, v_hidden]
-        print("target_layers_tensor")
-        print(target_layers_tensor.size())
+        #print("target_layers_tensor")
+        #print(target_layers_tensor.size())
 
         # Layer attention
         layer_weights_normalized = F.softmax(self.layer_fusion_dropout(self.layer_weights), dim=0)  # [num_layers, v_hidden_size]
         layer_weights_normalized_expanded = layer_weights_normalized.unsqueeze(0).unsqueeze(0).expand(batch_size, v_seq_len, -1, -1)
-        print("layer_weights_normalized_expanded")
-        print(layer_weights_normalized_expanded.size())
+        #print("layer_weights_normalized_expanded")
+        #print(layer_weights_normalized_expanded.size())
         fused_representation_v = torch.sum(target_layers_tensor * layer_weights_normalized_expanded, dim=2)  # [batch, v_seq_len, v_hidden]
-        print("fused_representation_v")
-        print(fused_representation_v.size())
-        exit()
+        #print("fused_representation_v")
+        #print(fused_representation_v.size())
         return self.clf(fused_representation_v)
         #return self.clf(self.pre_classify_dropout(fused_representation_v))
 
