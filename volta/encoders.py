@@ -1334,9 +1334,9 @@ class BertForVLTasks(BertPreTrainedModel):
             vil_prediction = self.clfs_dict[task_id](sequence_output_v) + (
                 (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
             # debug
-            print("vil_prediction")
-            print(vil_prediction.size())
-            exit()
+            #print("vil_prediction")
+            #print(vil_prediction.size())
+            #exit()
         elif self.task_cfg[task_id]["type"] == "V-logit-fuse-text-vision":
             pred_scores, attn_scores = self.clfs_dict[task_id](input_txt, sequence_output_t, sequence_output_v,
                                                                  attention_mask)
@@ -1875,21 +1875,21 @@ class MultiLayerCoarseAttnFusionClassifier(nn.Module):
         :return:
         """
         batch_size, v_seq_len, v_hidden_size = sequence_output_v_all[-1].size()
-        print(len(sequence_output_v_all))
-        print(sequence_output_v_all[0].size())
+        #print(len(sequence_output_v_all))
+        #print(sequence_output_v_all[0].size())
         target_layers = [sequence_output_v_all[idx] for idx in self.layer_indices]
         target_layers_tensor = torch.stack(target_layers, dim=2)  # [batch, v_seq_len, num_layers, v_hidden]
-        print("target_layers_tensor")
-        print(target_layers_tensor.size())
+        #print("target_layers_tensor")
+        #print(target_layers_tensor.size())
 
         # Layer attention
         layer_weights_normalized = F.softmax(self.layer_fusion_dropout(self.layer_weights))  # [num_layers]
         layer_weights_normalized_expanded = layer_weights_normalized.view(1, 1, -1, 1).expand(batch_size, v_seq_len, -1, v_hidden_size)
-        print("layer_weights_normalized_expanded")
-        print(layer_weights_normalized_expanded.size())
+        #print("layer_weights_normalized_expanded")
+        #print(layer_weights_normalized_expanded.size())
         fused_representation_v = torch.sum(target_layers_tensor * layer_weights_normalized_expanded, dim=2)  # [batch, v_seq_len, v_hidden]
-        print("fused_representation_v")
-        print(fused_representation_v.size())
+        #print("fused_representation_v")
+        #print(fused_representation_v.size())
         return self.clf(fused_representation_v)
         #return self.clf(self.pre_classify_dropout(fused_representation_v))
 
