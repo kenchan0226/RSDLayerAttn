@@ -131,7 +131,7 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         _, preds = torch.max(vil_logit, 1)
         batch_score = (preds == target).sum()
 
-    elif task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id]["type"] == "VL-keywordmlp" or task_cfg[task_id]["type"] == "V-logit-fuse" or task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention":
+    elif task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id]["type"] == "VL-keywordmlp" or task_cfg[task_id]["type"] == "V-logit-fuse" or task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention" or task_cfg[task_id]["type"] == "V-logit-fuse-fine-attention":
         if task_cfg[task_id]["loss"] == "BCEWithLogitLoss":
             loss = criterion(vil_prediction, target)
             loss = loss.mean() * target.size(1)
@@ -381,7 +381,7 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         _, preds = torch.max(vil_logit, 1)
         batch_score = float((preds == target).sum()) / float(batch_size)
 
-    elif task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id]["type"] == "VL-keywordmlp" or task_cfg[task_id]["type"] == "V-logit-fuse" or task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention":
+    elif task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id]["type"] == "VL-keywordmlp" or task_cfg[task_id]["type"] == "V-logit-fuse" or task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention" or task_cfg[task_id]["type"] == "V-logit-fuse-fine-attention":
         if task_cfg[task_id]["loss"] == "BCEWithLogitLoss":
             loss = criterion(vil_prediction, target)
             loss = loss.mean() * target.size(1)
@@ -917,7 +917,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
                 }
             )
 
-    elif task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id]["type"] == "VL-keywordmlp" or task_cfg[task_id]["type"] == "V-logit-fuse" or task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention":
+    elif task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id]["type"] == "VL-keywordmlp" or task_cfg[task_id]["type"] == "V-logit-fuse" or task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention" or task_cfg[task_id]["type"] == "V-logit-fuse-fine-attention":
         if task_cfg[task_id]["loss"] == "BCEWithLogitLoss":
             loss = criterion(vil_prediction, target)
             loss = loss.mean() * target.size(1)

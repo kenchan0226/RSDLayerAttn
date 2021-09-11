@@ -1201,6 +1201,12 @@ class BertForVLTasks(BertPreTrainedModel):
                 task2clf[task_id] = MultiLayerCoarseAttnFusionClassifier(task_cfg[task_id].fuse_layers, config.v_hidden_size,
                                                                config.v_attention_probs_dropout_prob,
                                                                task_cfg[task_id].get("num_clf_layers", 1))
+            elif task_type == "V-logit-fuse-fine-attention":
+                print("V-logit-fuse-fine-attention")
+                #task2clf[task_id] = MultiLayerFusionClassifier(config.v_ff_sublayers, config.v_hidden_size, config.v_attention_probs_dropout_prob, task_cfg[task_id].get("num_clf_layers", 1))
+                task2clf[task_id] = MultiLayerFineAttnFusionClassifier(task_cfg[task_id].fuse_layers, config.v_hidden_size,
+                                                               config.v_attention_probs_dropout_prob,
+                                                               task_cfg[task_id].get("num_clf_layers", 1))
             elif task_type == "V-logit-fuse-text-vision":
                 print("V-logit-fuse-text-vision")
                 task2clf[task_id] = TextAttnLayerFusedClassifier(task_cfg[task_id].fuse_layers, config.hidden_size, config.v_hidden_size,
@@ -1321,22 +1327,10 @@ class BertForVLTasks(BertPreTrainedModel):
         else:
             raise ValueError("Invalid fusion method: %s" % self.fusion_method)
 
-        if self.task_cfg[task_id]["type"] == "V-logit":
+        if self.task_cfg[task_id]["type"] == "V-logit" or self.task_cfg[task_id]["type"] == "V-logit-fuse" or self.task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention" or self.task_cfg[task_id]["type"] == "V-logit-fuse-fine-attention":
             vil_prediction = self.clfs_dict[task_id](self.dropout(sequence_output_v)) + (
                 (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
             # vil_prediction: [batch, 37, 1]
-        elif self.task_cfg[task_id]["type"] == "V-logit-fuse":
-            vil_prediction = self.clfs_dict[task_id](sequence_output_v) + (
-                (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
-            # debug
-            #exit()
-        elif self.task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention":
-            vil_prediction = self.clfs_dict[task_id](sequence_output_v) + (
-                (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
-            # debug
-            #print("vil_prediction")
-            #print(vil_prediction.size())
-            #exit()
         elif self.task_cfg[task_id]["type"] == "V-logit-fuse-text-vision":
             pred_scores, attn_scores = self.clfs_dict[task_id](input_txt, sequence_output_t, sequence_output_v,
                                                                  attention_mask)
@@ -1890,6 +1884,58 @@ class MultiLayerCoarseAttnFusionClassifier(nn.Module):
         fused_representation_v = torch.sum(target_layers_tensor * layer_weights_normalized_expanded, dim=2)  # [batch, v_seq_len, v_hidden]
         #print("fused_representation_v")
         #print(fused_representation_v.size())
+        return self.clf(fused_representation_v)
+        #return self.clf(self.pre_classify_dropout(fused_representation_v))
+
+
+class MultiLayerFineAttnFusionClassifier(nn.Module):
+    def __init__(self, layer_indices, v_hidden_size, dropout_prob=0.1, num_clf_layers=1):
+        super(MultiLayerFineAttnFusionClassifier, self).__init__()
+        if num_clf_layers == 1:
+            self.clf = nn.Linear(v_hidden_size, 1)
+        elif num_clf_layers == 2:
+            self.clf = torch.nn.Sequential(
+                        nn.Linear(v_hidden_size, v_hidden_size),
+                        GeLU(),
+                        torch.nn.Dropout(dropout_prob, inplace=False),
+                        nn.Linear(v_hidden_size, 1)
+                    )
+        else:
+            raise ValueError
+        num_layers = len(layer_indices)
+        self.layer_indices = layer_indices
+        self.fusion_func = nn.Linear(num_layers * v_hidden_size, v_hidden_size)
+        self.pre_classify_dropout = nn.Dropout(dropout_prob)
+        print("MultiLayerFineAttnFusionClassifier built")
+        print("Indices: ", layer_indices)
+        print("No. of layers: ", num_layers)
+        #self.layer_weights = nn.Parameter(torch.empty(num_layers))  # [num_layers]
+        self.layer_weights = nn.Parameter(torch.empty(num_layers, v_hidden_size))  # [num_layers, v_hidden_size]
+        #nn.init.uniform_(self.layer_weights, a=-0.1, b=0.1)
+        self.layer_fusion_dropout = nn.Dropout(dropout_prob)
+
+    def forward(self, sequence_output_v_all):
+        """
+        :param sequence_output_v_all: a tuple of tensor [batch, v_seq_len, v_hidden_size]
+        :return:
+        """
+        batch_size, v_seq_len, v_hidden_size = sequence_output_v_all[-1].size()
+        print(len(sequence_output_v_all))
+        print(sequence_output_v_all[0].size())
+        target_layers = [sequence_output_v_all[idx] for idx in self.layer_indices]
+        target_layers_tensor = torch.stack(target_layers, dim=2)  # [batch, v_seq_len, num_layers, v_hidden]
+        print("target_layers_tensor")
+        print(target_layers_tensor.size())
+
+        # Layer attention
+        layer_weights_normalized = F.softmax(self.layer_fusion_dropout(self.layer_weights), dim=0)  # [num_layers, v_hidden_size]
+        layer_weights_normalized_expanded = layer_weights_normalized.unsqueeze(0).unsqueeze(0).expand(batch_size, v_seq_len, -1, -1)
+        print("layer_weights_normalized_expanded")
+        print(layer_weights_normalized_expanded.size())
+        fused_representation_v = torch.sum(target_layers_tensor * layer_weights_normalized_expanded, dim=2)  # [batch, v_seq_len, v_hidden]
+        print("fused_representation_v")
+        print(fused_representation_v.size())
+        exit()
         return self.clf(fused_representation_v)
         #return self.clf(self.pre_classify_dropout(fused_representation_v))
 
