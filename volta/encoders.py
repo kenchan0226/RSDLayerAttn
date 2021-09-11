@@ -1036,9 +1036,6 @@ class BertModel(BertPreTrainedModel):
         if not output_all_encoded_layers:
             encoded_layers_t = encoded_layers_t[-1]
             encoded_layers_v = encoded_layers_v[-1]
-        else:
-            encoded_layers_t = [embedding_output] + list(encoded_layers_t)
-            encoded_layers_v = [v_embedding_output] + list(encoded_layers_v)
 
         return encoded_layers_t, encoded_layers_v, pooled_output_t, pooled_output_v, all_attention_mask
 
@@ -1880,16 +1877,17 @@ class MultiLayerCoarseAttnFusionClassifier(nn.Module):
         batch_size, v_seq_len, v_hidden_size = sequence_output_v_all[-1].size()
         print(len(sequence_output_v_all))
         print(sequence_output_v_all[0].size())
-        sequence_output_v_all_tensor = torch.stack(sequence_output_v_all, dim=2)  # [batch, v_seq_len, num_layers, v_hidden]
-        print("sequence_output_v_all_tensor")
-        print(sequence_output_v_all_tensor.size())
+        target_layers = [sequence_output_v_all[idx] for idx in self.layer_indices]
+        target_layers_tensor = torch.stack(target_layers, dim=2)  # [batch, v_seq_len, num_layers, v_hidden]
+        print("target_layers_tensor")
+        print(target_layers_tensor.size())
 
         # Layer attention
         layer_weights_normalized = F.softmax(self.layer_fusion_dropout(self.layer_weights))  # [num_layers]
         layer_weights_normalized_expanded = layer_weights_normalized.view(1, 1, -1, 1).expand(batch_size, v_seq_len, -1, v_hidden_size)
         print("layer_weights_normalized_expanded")
         print(layer_weights_normalized_expanded.size())
-        fused_representation_v = torch.sum(sequence_output_v_all_tensor * layer_weights_normalized_expanded, dim=2)  # [batch, v_seq_len, v_hidden]
+        fused_representation_v = torch.sum(target_layers_tensor * layer_weights_normalized_expanded, dim=2)  # [batch, v_seq_len, v_hidden]
         print("fused_representation_v")
         print(fused_representation_v.size())
         return self.clf(fused_representation_v)
