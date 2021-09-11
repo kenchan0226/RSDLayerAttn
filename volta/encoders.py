@@ -1941,14 +1941,15 @@ class MultiLayerFineAttnFusionClassifier(nn.Module):
         #print(target_layers_tensor.size())
 
         # Layer attention
-        layer_weights_normalized = F.softmax(self.layer_fusion_dropout(self.layer_weights), dim=0)  # [num_layers, v_hidden_size]
+        #layer_weights_normalized = F.softmax(self.layer_fusion_dropout(self.layer_weights), dim=0)  # [num_layers, v_hidden_size]
+        layer_weights_normalized = F.softmax(self.layer_weights)  # [num_layers, v_hidden_size]
         layer_weights_normalized_expanded = layer_weights_normalized.unsqueeze(0).unsqueeze(0).expand(batch_size, v_seq_len, -1, -1)
         #print("layer_weights_normalized_expanded")
         #print(layer_weights_normalized_expanded.size())
         fused_representation_v = torch.sum(target_layers_tensor * layer_weights_normalized_expanded, dim=2)  # [batch, v_seq_len, v_hidden]
         #print("fused_representation_v")
         #print(fused_representation_v.size())
-        return self.clf(fused_representation_v)
+        return self.clf(self.pre_classify_dropout(fused_representation_v))
         #return self.clf(self.pre_classify_dropout(fused_representation_v))
 
 
