@@ -1327,10 +1327,22 @@ class BertForVLTasks(BertPreTrainedModel):
         else:
             raise ValueError("Invalid fusion method: %s" % self.fusion_method)
 
-        if self.task_cfg[task_id]["type"] == "V-logit" or self.task_cfg[task_id]["type"] == "V-logit-fuse" or self.task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention" or self.task_cfg[task_id]["type"] == "V-logit-fuse-fine-attention":
+        if self.task_cfg[task_id]["type"] == "V-logit":
             vil_prediction = self.clfs_dict[task_id](self.dropout(sequence_output_v)) + (
                 (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
             # vil_prediction: [batch, 37, 1]
+        elif self.task_cfg[task_id]["type"] == "V-logit-fuse":
+            vil_prediction = self.clfs_dict[task_id](sequence_output_v) + (
+                (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
+            # debug
+            #exit()
+        elif self.task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention" or self.task_cfg[task_id]["type"] == "V-logit-fuse-fine-attention":
+            vil_prediction = self.clfs_dict[task_id](sequence_output_v) + (
+                (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
+            # debug
+            #print("vil_prediction")
+            #print(vil_prediction.size())
+            #exit()
         elif self.task_cfg[task_id]["type"] == "V-logit-fuse-text-vision":
             pred_scores, attn_scores = self.clfs_dict[task_id](input_txt, sequence_output_t, sequence_output_v,
                                                                  attention_mask)
