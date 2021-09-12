@@ -1865,8 +1865,7 @@ class MultiLayerCoarseAttnFusionClassifier(nn.Module):
             raise ValueError
         num_layers = len(layer_indices)
         self.layer_indices = layer_indices
-        self.fusion_func = nn.Linear(num_layers * v_hidden_size, v_hidden_size)
-        self.pre_classify_dropout = nn.Dropout(dropout_prob)
+        #self.pre_classify_dropout = nn.Dropout(dropout_prob)
         print("MultiLayerFusionClassifier built")
         print("Indices: ", layer_indices)
         print("No. of layers: ", num_layers)
@@ -1916,8 +1915,7 @@ class MultiLayerFineAttnFusionClassifier(nn.Module):
             raise ValueError
         num_layers = len(layer_indices)
         self.layer_indices = layer_indices
-        self.fusion_func = nn.Linear(num_layers * v_hidden_size, v_hidden_size)
-        self.pre_classify_dropout = nn.Dropout(dropout_prob)
+        #self.pre_classify_dropout = nn.Dropout(dropout_prob)
         print("MultiLayerFineAttnFusionClassifier built")
         print("Indices: ", layer_indices)
         print("No. of layers: ", num_layers)
