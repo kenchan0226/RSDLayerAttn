@@ -1002,7 +1002,7 @@ TASK59:
   num_epoch: 20
   num_clf_layers: 1
   fuse_layers: [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24]
-  layer_fusion_dropout: 0.2
+  layer_fusion_dropout: 0.1
 TASK60:
   name: talk2car
   type: V-logit-fuse-fine-attention

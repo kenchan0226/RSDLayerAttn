@@ -1870,8 +1870,7 @@ class MultiLayerCoarseAttnFusionClassifier(nn.Module):
         print("Indices: ", layer_indices)
         print("No. of layers: ", num_layers)
         self.layer_weights = nn.Parameter(torch.empty(num_layers))  # [num_layers]
-        #self.layer_weights = nn.Parameter(torch.empty(num_layers, v_hidden_size))  # [num_layers, v_hidden_size]
-        #nn.init.uniform_(self.layer_weights, a=-0.1, b=0.1)
+        nn.init.xavier_uniform_(self.layer_weights)
         self.layer_fusion_dropout = nn.Dropout(dropout_prob)
 
     def forward(self, sequence_output_v_all):
