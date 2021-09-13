@@ -1201,7 +1201,7 @@ class BertForVLTasks(BertPreTrainedModel):
                                                                          config.v_hidden_size,
                                                                          task_cfg[task_id].get("layer_fusion_dropout",
                                                                                                0.1),
-                                                                         task_cfg[task_id].get("num_clf_layers", 0.1))
+                                                                         task_cfg[task_id].get("num_clf_layers", 1))
             elif task_type == "V-logit-fuse-coarse-attention":
                 print("V-logit-fuse-coarse-attention")
                 #task2clf[task_id] = MultiLayerFusionClassifier(config.v_ff_sublayers, config.v_hidden_size, config.v_attention_probs_dropout_prob, task_cfg[task_id].get("num_clf_layers", 1))
