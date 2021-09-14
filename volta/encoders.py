@@ -1361,7 +1361,8 @@ class BertForVLTasks(BertPreTrainedModel):
             #print(layer_attn_scores.size())
             #exit()
         elif self.task_cfg[task_id]["type"] == "V-logit-fuse-self-attention-text-vision":
-            pred_scores, layer_attn_scores_v, layer_attn_scores_t, keyword_attn_scores = self.clfs_dict[task_id](sequence_output_v)
+            pred_scores, layer_attn_scores_v, layer_attn_scores_t, keyword_attn_scores = self.clfs_dict[task_id](input_txt, sequence_output_t, sequence_output_v,
+                                                                 attention_mask)
             # mask out padding
             pred_scores = pred_scores + ((1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(
                 dtype=next(self.parameters()).dtype)
