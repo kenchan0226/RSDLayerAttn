@@ -1368,12 +1368,12 @@ class BertForVLTasks(BertPreTrainedModel):
                 dtype=next(self.parameters()).dtype)
             vil_prediction = (pred_scores, layer_attn_scores_v, layer_attn_scores_t, keyword_attn_scores)
             # debug
-            print("vil_prediction")
-            print(pred_scores.size())
-            print(layer_attn_scores_v.size())
-            print(layer_attn_scores_t.size())
-            print(keyword_attn_scores.size())
-            exit()
+            #print("vil_prediction")
+            #print(pred_scores.size())
+            #print(layer_attn_scores_v.size())
+            #print(layer_attn_scores_t.size())
+            #print(keyword_attn_scores.size())
+            #exit()
         elif self.task_cfg[task_id]["type"] == "V-logit-fuse-text-vision":
             pred_scores, attn_scores = self.clfs_dict[task_id](input_txt, sequence_output_t, sequence_output_v,
                                                                  attention_mask)
@@ -1951,7 +1951,7 @@ class MultiLayerSelfAttnTextVisionFusionClassifier(nn.Module):
         self.v_hidden_size = v_hidden_size
         self.t_hidden_size = t_hidden_size
         # self.pre_classify_dropout = nn.Dropout(dropout_prob)
-        print("MultiLayerSelfAttnFusionClassifier built")
+        print("MultiLayerSelfAttnTextVisionFusionClassifier built")
         print("Indices: ", layer_indices)
         print("No. of layers: ", num_layers)
         self.vision_layer_self_attn = nn.Linear(v_hidden_size, 1)
@@ -1987,8 +1987,8 @@ class MultiLayerSelfAttnTextVisionFusionClassifier(nn.Module):
         # layer fusion on region
         target_layers_v = [sequence_output_v_all[idx] for idx in self.layer_indices]
         target_layers_v_tensor = torch.stack(target_layers_v, dim=2)  # [batch, v_seq_len, num_layers, v_hidden]
-        print("target_layers_v_tensor")
-        print(target_layers_v_tensor.size())
+        #print("target_layers_v_tensor")
+        #print(target_layers_v_tensor.size())
         # vision layer attention
         layer_weights_v_normalized = F.softmax(self.vision_layer_self_attn(target_layers_v_tensor),
                                              dim=2)  # [batch, v_seq_len, num_layers, 1]
@@ -1997,15 +1997,15 @@ class MultiLayerSelfAttnTextVisionFusionClassifier(nn.Module):
 
         fused_representation_v = torch.sum(target_layers_v_tensor * layer_weights_v_normalized_expanded,
                                            dim=2)  # [batch, v_seq_len, v_hidden]
-        print("fused_representation_v")
-        print(fused_representation_v.size())
+        #print("fused_representation_v")
+        #print(fused_representation_v.size())
 
         # layer fusion on text
         #sequence_output_t = sequence_output_t_all[-1]  # last layer text representation
         target_layers_t = [sequence_output_t_all[idx] for idx in self.layer_indices]
         target_layers_t_tensor = torch.stack(target_layers_t, dim=2)  # [batch, t_seq_len, num_layers, t_hidden]
-        print("target_layers_t_tensor")
-        print(target_layers_t_tensor.size())
+        #print("target_layers_t_tensor")
+        #print(target_layers_t_tensor.size())
         # text layer attention
         layer_weights_t_normalized = F.softmax(self.text_layer_self_attn(target_layers_t_tensor),
                                                dim=2)  # [batch, v_seq_len, num_layers, 1]
@@ -2014,18 +2014,18 @@ class MultiLayerSelfAttnTextVisionFusionClassifier(nn.Module):
 
         fused_representation_t = torch.sum(target_layers_t_tensor * layer_weights_t_normalized_expanded,
                                            dim=2)  # [batch, v_seq_len, v_hidden]
-        print("layer_weights_t_normalized")
-        print(layer_weights_t_normalized.size())
-        print("fused_representation_t")
-        print(fused_representation_t.size())
+        #print("layer_weights_t_normalized")
+        #print(layer_weights_t_normalized.size())
+        #print("fused_representation_t")
+        #print(fused_representation_t.size())
         # keyword attention
         v_seq_len = fused_representation_v.size(1)
         # may add dropout to fused_representation_t
         t_context, keyword_attn_scores = self.compute_text_attentive_feature(input_txt, fused_representation_t, attn_mask_t)
         # t_context: [batch_size, t_hidden_size]
         t_context_expanded = t_context.unsqueeze(1).expand(-1, v_seq_len, -1)  # [batch_size, v_seq_len, t_hidden_size]
-        print("t_context_expanded")
-        print(t_context_expanded.size())
+        #print("t_context_expanded")
+        #print(t_context_expanded.size())
 
         # compute prediction score
         pred_scores = self.out_mlp( self.dropout( torch.cat([t_context_expanded, fused_representation_v], dim=2) ) )
