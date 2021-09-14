@@ -2032,7 +2032,7 @@ class MultiLayerSelfAttnTextVisionFusionClassifier(nn.Module):
         # compute prediction score
         #pred_scores = self.out_mlp( self.dropout( torch.cat([t_context_expanded, fused_representation_v], dim=2) ) )
 
-        pred_scores = self.out_mlp(self.dropout(t_context_expanded * fused_representation_v))
+        pred_scores = self.out_mlp(self.dropout(t_context_expanded) * self.dropout(fused_representation_v))
 
         return pred_scores, layer_weights_v_normalized.squeeze(3), layer_weights_t_normalized.squeeze(3), keyword_attn_scores
 
