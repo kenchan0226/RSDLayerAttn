@@ -1936,7 +1936,8 @@ class MultiLayerSelfAttnTextVisionFusionClassifier(nn.Module):
         super(MultiLayerSelfAttnTextVisionFusionClassifier, self).__init__()
         self.self_attn = nn.Linear(t_hidden_size, 1)
         if num_clf_layers == 1:
-            self.out_mlp = nn.Linear(t_hidden_size + v_hidden_size, 1)
+            #self.out_mlp = nn.Linear(t_hidden_size + v_hidden_size, 1)
+            self.out_mlp = nn.Linear(t_hidden_size, 1)
         elif num_clf_layers == 2:
             self.out_mlp = torch.nn.Sequential(
                 nn.Linear(t_hidden_size + v_hidden_size, v_hidden_size),
@@ -2029,9 +2030,9 @@ class MultiLayerSelfAttnTextVisionFusionClassifier(nn.Module):
         #print(t_context_expanded.size())
 
         # compute prediction score
-        pred_scores = self.out_mlp( self.dropout( torch.cat([t_context_expanded, fused_representation_v], dim=2) ) )
+        #pred_scores = self.out_mlp( self.dropout( torch.cat([t_context_expanded, fused_representation_v], dim=2) ) )
 
-        #pred_scores = self.out_mlp(self.dropout(t_context_expanded * fused_representation_v))
+        pred_scores = self.out_mlp(self.dropout(t_context_expanded * fused_representation_v))
 
         return pred_scores, layer_weights_v_normalized.squeeze(3), layer_weights_t_normalized.squeeze(3), keyword_attn_scores
 
