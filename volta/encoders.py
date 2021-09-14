@@ -1949,6 +1949,7 @@ class MultiLayerSelfAttnTextVisionFusionClassifier(nn.Module):
         num_layers = len(layer_indices)
         self.layer_indices = layer_indices
         self.v_hidden_size = v_hidden_size
+        self.t_hidden_size = t_hidden_size
         # self.pre_classify_dropout = nn.Dropout(dropout_prob)
         print("MultiLayerSelfAttnFusionClassifier built")
         print("Indices: ", layer_indices)
