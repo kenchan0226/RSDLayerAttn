@@ -149,6 +149,14 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         # print(select_idx)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
+    elif task_cfg[task_id]["type"] == "V-logit-fuse-self-attention-text-vision":
+        pred_scores, layer_attn_scores_v, layer_attn_scores_t, keyword_attn_scores = vil_prediction
+        loss = criterion(pred_scores, target)
+        loss = loss.mean() * target.size(1)
+        _, select_idx = torch.max(pred_scores, dim=1)
+        # print(select_idx)
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
     elif task_cfg[task_id]["type"] == "V-logit-fuse-text-vision":
         pred_scores, attn_scores = vil_prediction
         loss = criterion(pred_scores, target)
@@ -400,6 +408,14 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         batch_score = float(torch.sum(select_target > 0.5)) / batch_size
     elif task_cfg[task_id]["type"] == "V-logit-fuse-self-attention":
         pred_scores, layer_attn_scores = vil_prediction
+        loss = criterion(pred_scores, target)
+        loss = loss.mean() * target.size(1)
+        _, select_idx = torch.max(pred_scores, dim=1)
+        # print(select_idx)
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
+    elif task_cfg[task_id]["type"] == "V-logit-fuse-self-attention-text-vision":
+        pred_scores, layer_attn_scores_v, layer_attn_scores_t, keyword_attn_scores = vil_prediction
         loss = criterion(pred_scores, target)
         loss = loss.mean() * target.size(1)
         _, select_idx = torch.max(pred_scores, dim=1)
@@ -1010,6 +1026,37 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
                     "target": select_idx[i].item(),
                     "IOU": select_target[i].item(),
                     "layer_attn_scores": layer_attn_scores[i],
+                }
+            )
+    elif task_cfg[task_id]["type"] == "V-logit-fuse-self-attention-text-vision":
+        pred_scores, layer_attn_scores_v, layer_attn_scores_t, keyword_attn_scores = vil_prediction
+        loss = criterion(pred_scores, target)
+        loss = loss.mean() * target.size(1)
+        _, select_idx = torch.max(pred_scores, dim=1)
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
+
+        layer_attn_scores_v = layer_attn_scores_v.tolist()
+        layer_attn_scores_t = layer_attn_scores_t.tolist()
+        keyword_attn_scores = keyword_attn_scores.tolist()
+
+        for i in range(select_idx.size(0)):
+            bbox_item = spatials_ori[i, select_idx[i],:4].cpu().detach().tolist()
+            bbox_item = bbox_item[0]
+            bbox.append(
+              {
+                question_id[i].item(): [bbox_item[0], bbox_item[1], bbox_item[2]-bbox_item[0], bbox_item[3]-bbox_item[1]]
+                #question_id[i].item(): spatials_ori[i, select_idx[i],:4].cpu().detach().tolist()
+              }
+            )
+            results.append(
+                {
+                    "id": question_id[i].item(),
+                    "target": select_idx[i].item(),
+                    "IOU": select_target[i].item(),
+                    "layer_attn_scores_v": layer_attn_scores_v[i],
+                    "layer_attn_scores_t": layer_attn_scores_t[i],
+                    "keyword_attn_scores": keyword_attn_scores[i],
                 }
             )
     elif task_cfg[task_id]["type"] == "V-logit-fuse-text-vision":
