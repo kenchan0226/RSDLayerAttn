@@ -1338,18 +1338,20 @@ class BertForVLTasks(BertPreTrainedModel):
             vil_prediction = self.clfs_dict[task_id](self.dropout(sequence_output_v)) + (
                 (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
             # vil_prediction: [batch, 37, 1]
-        elif self.task_cfg[task_id]["type"] == "V-logit-fuse":
+        elif self.task_cfg[task_id]["type"] == "V-logit-fuse" or self.task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention" or self.task_cfg[task_id]["type"] == "V-logit-fuse-fine-attention":
             vil_prediction = self.clfs_dict[task_id](sequence_output_v) + (
                 (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
+        elif self.task_cfg[task_id]["type"] == "V-logit-fuse-self-attention":
+            pred_scores, layer_attn_scores = self.clfs_dict[task_id](sequence_output_v)
+            # mask out padding
+            pred_scores = pred_scores + ((1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(
+                dtype=next(self.parameters()).dtype)
+            vil_prediction = (pred_scores, layer_attn_scores)
             # debug
-            #exit()
-        elif self.task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention" or self.task_cfg[task_id]["type"] == "V-logit-fuse-fine-attention" or self.task_cfg[task_id]["type"] == "V-logit-fuse-self-attention":
-            vil_prediction = self.clfs_dict[task_id](sequence_output_v) + (
-                (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
-            # debug
-            #print("vil_prediction")
-            #print(vil_prediction.size())
-            #exit()
+            print("vil_prediction")
+            print(pred_scores.size())
+            print(layer_attn_scores.size())
+            exit()
         elif self.task_cfg[task_id]["type"] == "V-logit-fuse-text-vision":
             pred_scores, attn_scores = self.clfs_dict[task_id](input_txt, sequence_output_t, sequence_output_v,
                                                                  attention_mask)
@@ -1903,8 +1905,8 @@ class MultiLayerSelfAttnFusionClassifier(nn.Module):
         #print(layer_weights_normalized_expanded[0,0].detach().cpu().numpy())
         #print("fused_representation_v")
         #print(fused_representation_v.size())
-        return self.clf(self.dropout(fused_representation_v))
-        #return self.clf(self.pre_classify_dropout(fused_representation_v))
+        region_clf_logit = self.clf(self.dropout(fused_representation_v))  # [batch, v_seq_len, 1]
+        return region_clf_logit, layer_weights_normalized.squeeze(3)
 
 
 class MultiLayerCoarseAttnFusionClassifier(nn.Module):

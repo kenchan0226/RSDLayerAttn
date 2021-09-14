@@ -131,7 +131,7 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         _, preds = torch.max(vil_logit, 1)
         batch_score = (preds == target).sum()
 
-    elif task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id]["type"] == "VL-keywordmlp" or task_cfg[task_id]["type"] == "V-logit-fuse" or task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention" or task_cfg[task_id]["type"] == "V-logit-fuse-fine-attention" or task_cfg[task_id]["type"] == "V-logit-fuse-self-attention":
+    elif task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id]["type"] == "VL-keywordmlp" or task_cfg[task_id]["type"] == "V-logit-fuse" or task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention" or task_cfg[task_id]["type"] == "V-logit-fuse-fine-attention":
         if task_cfg[task_id]["loss"] == "BCEWithLogitLoss":
             loss = criterion(vil_prediction, target)
             loss = loss.mean() * target.size(1)
@@ -139,6 +139,14 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
             loss = criterion(vil_prediction, target, image_mask, task_cfg[task_id]["temperature"])
         _, select_idx = torch.max(vil_prediction, dim=1)
         #print(select_idx)
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
+    elif task_cfg[task_id]["type"] == "V-logit-fuse-self-attention":
+        pred_scores, layer_attn_scores = vil_prediction
+        loss = criterion(pred_scores, target)
+        loss = loss.mean() * target.size(1)
+        _, select_idx = torch.max(pred_scores, dim=1)
+        # print(select_idx)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
     elif task_cfg[task_id]["type"] == "V-logit-fuse-text-vision":
@@ -381,7 +389,7 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         _, preds = torch.max(vil_logit, 1)
         batch_score = float((preds == target).sum()) / float(batch_size)
 
-    elif task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id]["type"] == "VL-keywordmlp" or task_cfg[task_id]["type"] == "V-logit-fuse" or task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention" or task_cfg[task_id]["type"] == "V-logit-fuse-fine-attention" or task_cfg[task_id]["type"] == "V-logit-fuse-self-attention":
+    elif task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id]["type"] == "VL-keywordmlp" or task_cfg[task_id]["type"] == "V-logit-fuse" or task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention" or task_cfg[task_id]["type"] == "V-logit-fuse-fine-attention":
         if task_cfg[task_id]["loss"] == "BCEWithLogitLoss":
             loss = criterion(vil_prediction, target)
             loss = loss.mean() * target.size(1)
@@ -390,6 +398,14 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         _, select_idx = torch.max(vil_prediction, dim=1)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = float(torch.sum(select_target > 0.5)) / batch_size
+    elif task_cfg[task_id]["type"] == "V-logit-fuse-self-attention":
+        pred_scores, layer_attn_scores = vil_prediction
+        loss = criterion(pred_scores, target)
+        loss = loss.mean() * target.size(1)
+        _, select_idx = torch.max(pred_scores, dim=1)
+        # print(select_idx)
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
     elif task_cfg[task_id]["type"] == "V-logit-fuse-text-vision":
         pred_scores, attn_scores = vil_prediction
         #print("pred_scores")
@@ -917,7 +933,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
                 }
             )
 
-    elif task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id]["type"] == "VL-keywordmlp" or task_cfg[task_id]["type"] == "V-logit-fuse" or task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention" or task_cfg[task_id]["type"] == "V-logit-fuse-fine-attention" or task_cfg[task_id]["type"] == "V-logit-fuse-self-attention":
+    elif task_cfg[task_id]["type"] == "V-logit" or task_cfg[task_id]["type"] == "VL-keywordmlp" or task_cfg[task_id]["type"] == "V-logit-fuse" or task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention" or task_cfg[task_id]["type"] == "V-logit-fuse-fine-attention":
         if task_cfg[task_id]["loss"] == "BCEWithLogitLoss":
             loss = criterion(vil_prediction, target)
             loss = loss.mean() * target.size(1)
@@ -956,7 +972,46 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
                     "IOU": select_target[i].item(),
                 }
             )
+    elif task_cfg[task_id]["type"] == "V-logit-fuse-self-attention":
+        pred_scores, layer_attn_scores = vil_prediction
+        loss = criterion(pred_scores, target)
+        loss = loss.mean() * target.size(1)
+        #print()
+        #print(vil_prediction.size())
+        #print("vil_prediction")
+        #print(vil_prediction[0,:,0])
+        # vli_predition: [batch, num_regions, 1]
+        _, select_idx = torch.max(pred_scores, dim=1)
+        #print(select_idx.size())
+        #print("idx")
+        #print(select_idx[0])
+        #print("target")
+        #print(target.size())
+        #print("spatials_ori")
+        #print(spatials_ori[select_idx[0],:4])
+        #exit()
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
 
+        layer_attn_scores = layer_attn_scores.tolist()
+
+        for i in range(select_idx.size(0)):
+            bbox_item = spatials_ori[i, select_idx[i],:4].cpu().detach().tolist()
+            bbox_item = bbox_item[0]
+            bbox.append(
+              {
+                question_id[i].item(): [bbox_item[0], bbox_item[1], bbox_item[2]-bbox_item[0], bbox_item[3]-bbox_item[1]]
+                #question_id[i].item(): spatials_ori[i, select_idx[i],:4].cpu().detach().tolist()
+              }
+            )
+            results.append(
+                {
+                    "id": question_id[i].item(),
+                    "target": select_idx[i].item(),
+                    "IOU": select_target[i].item(),
+                    "layer_attn_scores": layer_attn_scores[i],
+                }
+            )
     elif task_cfg[task_id]["type"] == "V-logit-fuse-text-vision":
         pred_scores, attn_scores = vil_prediction
         loss = criterion(pred_scores, target)
