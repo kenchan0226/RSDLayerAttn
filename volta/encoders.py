@@ -2021,7 +2021,8 @@ class MultiLayerSelfAttnTextVisionFusionClassifier(nn.Module):
         # keyword attention
         v_seq_len = fused_representation_v.size(1)
         # may add dropout to fused_representation_t
-        t_context, keyword_attn_scores = self.compute_text_attentive_feature(input_txt, self.dropout(fused_representation_t), attn_mask_t)
+        t_context, keyword_attn_scores = self.compute_text_attentive_feature(input_txt, fused_representation_t, attn_mask_t)
+        #t_context, keyword_attn_scores = self.compute_text_attentive_feature(input_txt, self.dropout(fused_representation_t), attn_mask_t)
         # t_context: [batch_size, t_hidden_size]
         t_context_expanded = t_context.unsqueeze(1).expand(-1, v_seq_len, -1)  # [batch_size, v_seq_len, t_hidden_size]
         #print("t_context_expanded")
