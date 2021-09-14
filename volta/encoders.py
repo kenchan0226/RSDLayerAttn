@@ -1348,10 +1348,10 @@ class BertForVLTasks(BertPreTrainedModel):
                 dtype=next(self.parameters()).dtype)
             vil_prediction = (pred_scores, layer_attn_scores)
             # debug
-            print("vil_prediction")
-            print(pred_scores.size())
-            print(layer_attn_scores.size())
-            exit()
+            #print("vil_prediction")
+            #print(pred_scores.size())
+            #print(layer_attn_scores.size())
+            #exit()
         elif self.task_cfg[task_id]["type"] == "V-logit-fuse-text-vision":
             pred_scores, attn_scores = self.clfs_dict[task_id](input_txt, sequence_output_t, sequence_output_v,
                                                                  attention_mask)
