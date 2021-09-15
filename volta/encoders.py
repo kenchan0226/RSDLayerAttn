@@ -887,6 +887,8 @@ class BertEncoder(nn.Module):
 
         for idx, layer in enumerate(self.layer):
             layer_type = self.num2type[idx]
+            print("layer_type")
+            print(layer_type)
             if layer_type == "attn":
                 txt_embedding, img_embedding, txt_attention_probs, img_attention_probs = \
                     layer(txt_embedding, img_embedding, txt_attention_mask, img_attention_mask)
@@ -902,6 +904,7 @@ class BertEncoder(nn.Module):
             if output_all_encoded_layers:
                 all_encoder_layers_t.append(txt_embedding)
                 all_encoder_layers_v.append(img_embedding)
+        exit()
 
         # add the end part to finish.
         if not output_all_encoded_layers:
