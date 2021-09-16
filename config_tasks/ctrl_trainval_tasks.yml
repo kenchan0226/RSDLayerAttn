@@ -58,7 +58,7 @@ TASK10:
   num_epoch: 20
 TASK11:
   name: refcoco+
-  type: V-logit-fuse-self-attention-text-vision
+  type: V-logit-fuse-self-attention
   loss: BCEWithLogitLoss
   process: normal
   task_id: 11
@@ -1461,12 +1461,12 @@ TASK79:
   num_clf_layers: 1
   fuse_layers: [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24]
   layer_fusion_dropout: 0.1
-TASK11:
+TASK80:
   name: refcoco+
-  type: V-logit-fuse-self-attention-text-vision
+  type: V-logit-fuse-self-attention
   loss: BCEWithLogitLoss
   process: normal
-  task_id: 11
+  task_id: 80
   dataroot: data/refcoco+_unc/annotations
   features_h5path1: data/refcoco+_unc/resnet101_faster_rcnn_genome_imgfeats/volta/refcoco+_unc_dets36_feat.lmdb
   features_h5path2: ''
