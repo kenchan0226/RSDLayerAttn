@@ -1026,7 +1026,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
                     "id": question_id[i].item(),
                     "target": select_idx[i].item(),
                     "IOU": select_target[i].item(),
-                    "v_seq_len": image_mask[i].sum(),
+                    "v_seq_len": sum(image_mask[i]),
                     "layer_attn_scores": layer_attn_scores[i],
                 }
             )
