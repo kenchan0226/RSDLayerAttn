@@ -1010,6 +1010,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         batch_score = torch.sum(select_target > 0.5).item()
 
         layer_attn_scores = layer_attn_scores.tolist()
+        image_mask = image_mask.tolist()  # [batch, v_seq_len]
 
         for i in range(select_idx.size(0)):
             bbox_item = spatials_ori[i, select_idx[i],:4].cpu().detach().tolist()
@@ -1026,6 +1027,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
                     "target": select_idx[i].item(),
                     "IOU": select_target[i].item(),
                     "layer_attn_scores": layer_attn_scores[i],
+                    "v_seq_len": image_mask[i].sum(),
                 }
             )
     elif task_cfg[task_id]["type"] == "V-logit-fuse-self-attention-text-vision":
