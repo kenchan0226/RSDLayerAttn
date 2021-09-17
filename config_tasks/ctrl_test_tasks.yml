@@ -47,7 +47,7 @@ TASK10:
   max_seq_length: 38
   max_region_num: 36
   batch_size: 32
-  eval_batch_size: 1024
+  eval_batch_size: 512
   train_split: ''
   val_split: test
 TASK12:
