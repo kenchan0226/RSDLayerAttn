@@ -48,6 +48,8 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
     else:
         features, spatials, image_mask, question, target, input_mask, segment_ids, question_id = batch
 
+    # target: [batch, num_regions, 1] IOU between each proposal bounding box and the ground-truth bounding box
+
     batch_size = features.size(0)
     output_all_encoded_layers = False
 
@@ -1028,6 +1030,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
                     "IOU": select_target[i].item(),
                     "v_seq_len": sum(image_mask[i]),
                     "layer_attn_scores": layer_attn_scores[i],
+                    "region_all_IOU": target[i].tolist()
                 }
             )
     elif task_cfg[task_id]["type"] == "V-logit-fuse-self-attention-text-vision":
