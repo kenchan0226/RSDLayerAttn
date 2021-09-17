@@ -50,6 +50,26 @@ TASK10:
   eval_batch_size: 512
   train_split: ''
   val_split: test
+TASK11:
+  name: refcoco+
+  type: V-logit-fuse-self-attention
+  loss: BCEWithLogitLoss
+  process: normal
+  task_id: 11
+  dataroot: data/refcoco+_unc/annotations
+  features_h5path1: data/refcoco+_unc/resnet101_faster_rcnn_genome_imgfeats/volta/refcoco+_unc_dets36_feat.lmdb
+  features_h5path2: ''
+  train_annotations_jsonpath: ''
+  val_annotations_jsonpath: ''
+  max_seq_length: 38
+  max_region_num: 36
+  batch_size: 32
+  eval_batch_size: 512
+  train_split: ''
+  val_split: test
+  num_clf_layers: 1
+  fuse_layers: [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24]
+  layer_fusion_dropout: 0.1
 TASK12:
   name: NLVR2
   type: VL-binary-classifier
