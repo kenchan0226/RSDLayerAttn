@@ -1205,6 +1205,13 @@ class BertForVLTasks(BertPreTrainedModel):
                                                                          task_cfg[task_id].get("layer_fusion_dropout",
                                                                                                0.1),
                                                                          task_cfg[task_id].get("num_clf_layers", 1))
+            elif task_type == "V-logit-fuse-self-attention-vseq-mean-pooled":
+                print("V-logit-fuse-self-attention-vseq-mean-pooled")
+                task2clf[task_id] = MultiLayerPooledSelfAttnFusionClassifier(task_cfg[task_id].fuse_layers,
+                                                                         config.v_hidden_size,
+                                                                         task_cfg[task_id].get("layer_fusion_dropout",
+                                                                                               0.1),
+                                                                         task_cfg[task_id].get("num_clf_layers", 1))
             elif task_type == "V-logit-fuse-self-attention-text-vision":
                 print("V-logit-fuse-self-attention-text-vision")
                 task2clf[task_id] = MultiLayerSelfAttnTextVisionFusionClassifier(task_cfg[task_id].fuse_layers,
@@ -1352,17 +1359,17 @@ class BertForVLTasks(BertPreTrainedModel):
         elif self.task_cfg[task_id]["type"] == "V-logit-fuse" or self.task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention" or self.task_cfg[task_id]["type"] == "V-logit-fuse-fine-attention":
             vil_prediction = self.clfs_dict[task_id](sequence_output_v) + (
                 (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
-        elif self.task_cfg[task_id]["type"] == "V-logit-fuse-self-attention":
+        elif self.task_cfg[task_id]["type"] == "V-logit-fuse-self-attention" or self.task_cfg[task_id]["type"] == "V-logit-fuse-self-attention-vseq-mean-pooled":
             pred_scores, layer_attn_scores = self.clfs_dict[task_id](sequence_output_v)
             # mask out padding
             pred_scores = pred_scores + ((1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(
                 dtype=next(self.parameters()).dtype)
             vil_prediction = (pred_scores, layer_attn_scores)
             # debug
-            #print("vil_prediction")
-            #print(pred_scores.size())
-            #print(layer_attn_scores.size())
-            #exit()
+            print("vil_prediction")
+            print(pred_scores.size())
+            print(layer_attn_scores.size())
+            exit()
         elif self.task_cfg[task_id]["type"] == "V-logit-fuse-self-attention-text-vision":
             pred_scores, layer_attn_scores_v, layer_attn_scores_t, keyword_attn_scores = self.clfs_dict[task_id](input_txt, sequence_output_t, sequence_output_v,
                                                                  attention_mask)
@@ -1932,6 +1939,60 @@ class MultiLayerSelfAttnFusionClassifier(nn.Module):
         #print(fused_representation_v.size())
         region_clf_logit = self.clf(self.dropout(fused_representation_v))  # [batch, v_seq_len, 1]
         return region_clf_logit, layer_weights_normalized.squeeze(3)
+
+
+class MultiLayerPooledSelfAttnFusionClassifier(nn.Module):
+    def __init__(self, layer_indices, v_hidden_size, dropout_prob=0.1, num_clf_layers=1):
+        super(MultiLayerPooledSelfAttnFusionClassifier, self).__init__()
+        if num_clf_layers == 1:
+            self.clf = nn.Linear(v_hidden_size, 1)
+        elif num_clf_layers == 2:
+            self.clf = torch.nn.Sequential(
+                        nn.Linear(v_hidden_size, v_hidden_size),
+                        GeLU(),
+                        torch.nn.Dropout(dropout_prob, inplace=False),
+                        nn.Linear(v_hidden_size, 1)
+                    )
+        else:
+            raise ValueError
+        num_layers = len(layer_indices)
+        self.layer_indices = layer_indices
+        self.v_hidden_size = v_hidden_size
+        #self.pre_classify_dropout = nn.Dropout(dropout_prob)
+        print("MultiLayerSelfAttnFusionClassifier built")
+        print("Indices: ", layer_indices)
+        print("No. of layers: ", num_layers)
+        self.layer_self_attn = nn.Linear(v_hidden_size, 1)
+        #nn.init.uniform_(self.layer_weights, a=-0.1, b=0.1)
+        self.dropout = nn.Dropout(dropout_prob)
+
+    def forward(self, sequence_output_v_all):
+        """
+        :param sequence_output_v_all: a tuple of tensor [batch, v_seq_len, v_hidden_size]
+        :return:
+        """
+        batch_size, v_seq_len, v_hidden_size = sequence_output_v_all[-1].size()
+        print("sequence_output_v_all")
+        print(len(sequence_output_v_all))
+        print(sequence_output_v_all[-1].size())
+        target_layers = [sequence_output_v_all[idx] for idx in self.layer_indices]
+        target_layers_tensor = torch.stack(target_layers, dim=2)  # [batch, v_seq_len, num_layers, v_hidden]
+        target_layers_tensor_seq_mean_pooled = torch.mean(target_layers_tensor, dim=1)  # [batch, num_layers, v_hidden]
+        print("target_layers_tensor_seq_mean_pooled")
+        print(target_layers_tensor_seq_mean_pooled.size())
+
+        # Layer attention
+        layer_weights_normalized = F.softmax(self.layer_self_attn(target_layers_tensor_seq_mean_pooled), dim=1)  # [batch, num_layers, 1]
+        layer_weights_normalized_expanded = layer_weights_normalized.unsqueeze(1)  # [batch, 1, num_layers, 1]
+        layer_weights_normalized_expanded = layer_weights_normalized_expanded.expand(-1, v_seq_len, -1, self.v_hidden_size)  # [batch, v_seq_len, num_layers, v_hidden]
+
+        fused_representation_v = torch.sum(target_layers_tensor * layer_weights_normalized_expanded, dim=2)  # [batch, v_seq_len, v_hidden]
+        print("layer_weights_normalized_expanded")
+        print(layer_weights_normalized_expanded[0,0].detach().cpu().numpy())
+        print("fused_representation_v")
+        print(fused_representation_v.size())
+        region_clf_logit = self.clf(self.dropout(fused_representation_v))  # [batch, v_seq_len, 1]
+        return region_clf_logit, layer_weights_normalized.squeeze(2)
 
 
 class MultiLayerSelfAttnTextVisionFusionClassifier(nn.Module):
