@@ -1366,10 +1366,10 @@ class BertForVLTasks(BertPreTrainedModel):
                 dtype=next(self.parameters()).dtype)
             vil_prediction = (pred_scores, layer_attn_scores)
             # debug
-            print("vil_prediction")
-            print(pred_scores.size())
-            print(layer_attn_scores.size())
-            exit()
+            #print("vil_prediction")
+            #print(pred_scores.size())
+            #print(layer_attn_scores.size())
+            #exit()
         elif self.task_cfg[task_id]["type"] == "V-logit-fuse-self-attention-text-vision":
             pred_scores, layer_attn_scores_v, layer_attn_scores_t, keyword_attn_scores = self.clfs_dict[task_id](input_txt, sequence_output_t, sequence_output_v,
                                                                  attention_mask)
@@ -1972,14 +1972,14 @@ class MultiLayerPooledSelfAttnFusionClassifier(nn.Module):
         :return:
         """
         batch_size, v_seq_len, v_hidden_size = sequence_output_v_all[-1].size()
-        print("sequence_output_v_all")
-        print(len(sequence_output_v_all))
-        print(sequence_output_v_all[-1].size())
+        #print("sequence_output_v_all")
+        #print(len(sequence_output_v_all))
+        #print(sequence_output_v_all[-1].size())
         target_layers = [sequence_output_v_all[idx] for idx in self.layer_indices]
         target_layers_tensor = torch.stack(target_layers, dim=2)  # [batch, v_seq_len, num_layers, v_hidden]
         target_layers_tensor_seq_mean_pooled = torch.mean(target_layers_tensor, dim=1)  # [batch, num_layers, v_hidden]
-        print("target_layers_tensor_seq_mean_pooled")
-        print(target_layers_tensor_seq_mean_pooled.size())
+        #print("target_layers_tensor_seq_mean_pooled")
+        #print(target_layers_tensor_seq_mean_pooled.size())
 
         # Layer attention
         layer_weights_normalized = F.softmax(self.layer_self_attn(target_layers_tensor_seq_mean_pooled), dim=1)  # [batch, num_layers, 1]
@@ -1987,10 +1987,10 @@ class MultiLayerPooledSelfAttnFusionClassifier(nn.Module):
         layer_weights_normalized_expanded = layer_weights_normalized_expanded.expand(-1, v_seq_len, -1, self.v_hidden_size)  # [batch, v_seq_len, num_layers, v_hidden]
 
         fused_representation_v = torch.sum(target_layers_tensor * layer_weights_normalized_expanded, dim=2)  # [batch, v_seq_len, v_hidden]
-        print("layer_weights_normalized_expanded")
-        print(layer_weights_normalized_expanded[0,0].detach().cpu().numpy())
-        print("fused_representation_v")
-        print(fused_representation_v.size())
+        #print("layer_weights_normalized_expanded")
+        #print(layer_weights_normalized_expanded[0,0].detach().cpu().numpy())
+        #print("fused_representation_v")
+        #print(fused_representation_v.size())
         region_clf_logit = self.clf(self.dropout(fused_representation_v))  # [batch, v_seq_len, 1]
         return region_clf_logit, layer_weights_normalized.squeeze(2)
 
