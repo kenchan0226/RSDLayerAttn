@@ -547,3 +547,23 @@ TASK85:
   num_clf_layers: 1
   fuse_layers: [0, 2, 4, 6, 8, 10, 21, 24, 27, 30, 33]
   layer_fusion_dropout: 0.1
+TASK86:
+  name: refcoco+
+  type: V-logit-fuse-self-attention
+  loss: BCEWithLogitLoss
+  process: normal
+  task_id: 86
+  dataroot: data/refcoco+_unc/annotations
+  features_h5path1: data/refcoco+_unc/resnet101_faster_rcnn_genome_imgfeats/volta/refcoco+_unc_dets36_feat.lmdb
+  features_h5path2: ''
+  train_annotations_jsonpath: ''
+  val_annotations_jsonpath: ''
+  max_seq_length: 20
+  max_region_num: 36
+  batch_size: 32
+  eval_batch_size: 256
+  train_split: ''
+  val_split: test
+  num_clf_layers: 1
+  fuse_layers: [0, 2, 4, 6, 8, 10, 21, 24, 27, 30, 33]
+  layer_fusion_dropout: 0.1
