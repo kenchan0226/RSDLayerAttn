@@ -1897,16 +1897,16 @@ class ObjCategorizationClassifier(nn.Module):
         # Compute self attention over text
         batch_size = sequence_output_t.size(0)
         sequence_output_t_projected = self.attn_proj_layer(sequence_output_t)  # [batch, seq_len, latent_size]
-        print("sequence_output_t_projected")
-        print(sequence_output_t_projected.size())
+        #print("sequence_output_t_projected")
+        #print(sequence_output_t_projected.size())
         w_alpha_expanded = self.w_alpha.view(1, -1, 1)  # [1, latent_size, 1]
         w_alpha_expanded = w_alpha_expanded.expand(batch_size, -1, -1)  # [batch, latent_size, 1]
-        print("w_alpha_expanded")
-        print(w_alpha_expanded.size())
+        #print("w_alpha_expanded")
+        #print(w_alpha_expanded.size())
 
         attn_score_unnormalized = torch.bmm(sequence_output_t_projected, w_alpha_expanded).squeeze(2)  # [batch, seq_len]
-        print("attn_score_unnormalized")
-        print(attn_score_unnormalized.size())
+        #print("attn_score_unnormalized")
+        #print(attn_score_unnormalized.size())
 
         # Masked softamx
         attn_score = masked_softmax(attn_score_unnormalized, mask=attn_mask_t, dim=1)  # [batch, seq_len]
@@ -1917,8 +1917,8 @@ class ObjCategorizationClassifier(nn.Module):
         t_context = torch.bmm(attn_score, sequence_output_t)  # [batch_size, 1, embed_proj_size]
         t_context = t_context.squeeze(1)  # [batch_size, embed_proj_size]
         attn_score = attn_score.squeeze(1)  # [batch_size, seq_len]
-        print("t_context")
-        print(t_context.size())
+        #print("t_context")
+        #print(t_context.size())
         return t_context, attn_score
 
     def forward(self, sequence_output_t, attn_mask_t):
@@ -1933,8 +1933,8 @@ class ObjCategorizationClassifier(nn.Module):
         # compute object classification output
         tgt_obj_class_scores = self.out_mlp(t_context)
         # obj_class: [batch, num_classes]
-        print("tgt_obj_class_scores")
-        print(tgt_obj_class_scores.size())
+        #print("tgt_obj_class_scores")
+        #print(tgt_obj_class_scores.size())
         return tgt_obj_class_scores, attn_score
 
 

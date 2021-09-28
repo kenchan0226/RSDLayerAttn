@@ -535,16 +535,16 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         # tgt object categorization loss
         ref_category_id = ref_category_id.squeeze(1)  # [batch]
         # vil_prediction: [batch, num_classes]
-        print("vil_prediction")
-        print(vil_prediction.size())
+        #print("vil_prediction")
+        #print(vil_prediction.size())
         loss = criterion(vil_prediction, ref_category_id)
         _, select_obj_cat_idx = torch.max(vil_prediction, dim=1)
         # select_obj_cat_idx: [batch]
         batch_score = torch.sum(select_obj_cat_idx == ref_category_id).item()
-        print("batch_score")
-        print(select_obj_cat_idx.tolist())
-        print(ref_category_id.tolist())
-        exit()
+        #print("batch_score")
+        #print(select_obj_cat_idx.tolist())
+        #print(ref_category_id.tolist())
+        #exit()
 
     elif task_cfg[task_id]["type"] == "VL-seq-label-contrast":
         region_prediction, sequence_prediction = vil_prediction
