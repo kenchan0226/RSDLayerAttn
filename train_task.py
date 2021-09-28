@@ -21,7 +21,7 @@ import torch
 import torch.distributed as dist
 # from torch.optim.lr_scheduler import LambdaLR, ReduceLROnPlateau, CosineAnnealingLR, CosineAnnealingWarmRestarts
 
-from pytorch_transformers.optimization import AdamW, WarmupConstantSchedule, WarmupLinearSchedule
+from pytorch_transformers.optimization import AdamW, WarmupConstantSchedule, WarmupLinearSchedule, Adam
 
 from volta.config import BertConfig
 from volta.optimization import RAdam
@@ -219,6 +219,8 @@ def main():
                           correct_bias=args.adam_correct_bias)
     elif args.optim == "RAdam":
         optimizer = RAdam(optimizer_grouped_parameters, lr=base_lr)
+    elif args.optim == "Adam":
+        optimizer = Adam(optimizer_grouped_parameters, lr=base_lr)
     num_train_optim_steps = (task2num_iters[task] * args.num_train_epochs // args.grad_acc_steps)
     warmup_steps = args.warmup_steps or args.warmup_proportion * num_train_optim_steps
     if args.lr_scheduler == "warmup_linear":
