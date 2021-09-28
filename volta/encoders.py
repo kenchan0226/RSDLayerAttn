@@ -1927,6 +1927,9 @@ class ObjCategorizationClassifier(nn.Module):
         :param attn_mask_t: [batch, seq_len]
         :return:
         """
+        print("self.w_alpha")
+        print(self.w_alpha.requires_grad)
+        exit()
         sequence_output_t_projected = self.embed_proj_layer(sequence_output_t)  # [batch, seq_len, embed_proj_size]
         t_context, attn_score = self.compute_text_attentive_feature(sequence_output_t_projected, attn_mask_t)
         # t_context: [batch_size, embed_proj_size]
