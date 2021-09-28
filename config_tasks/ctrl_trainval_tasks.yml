@@ -1724,3 +1724,4 @@ TASK91:
   num_obj_classes: 23
   num_clf_layers: 2
   clf_dropout: 0.2
+  layer_idx: 24
