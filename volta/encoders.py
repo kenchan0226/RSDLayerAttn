@@ -1161,7 +1161,7 @@ class BertForVLPreTraining(BertPreTrainedModel):
 
 
 class BertForVLTasks(BertPreTrainedModel):
-    def __init__(self, config, task_cfg, task_ids, dropout_prob=0.1):
+    def __init__(self, config, task_cfg, task_ids, dropout_prob=0.1, probe_layer_idx=None):
         super(BertForVLTasks, self).__init__(config)
 
         self.bert = BertModel(config)
@@ -1169,6 +1169,7 @@ class BertForVLTasks(BertPreTrainedModel):
 
         self.config = config
         self.task_cfg = task_cfg
+        self.probe_layer_idx = probe_layer_idx
         task2clf = {}
         for task_id in task_ids:
             task_type = task_cfg[task_id]["type"]
@@ -1275,6 +1276,9 @@ class BertForVLTasks(BertPreTrainedModel):
                                                                    dropout_prob, self.task_cfg[task_id].get("num_contrast_proj_layers", 1), self.task_cfg[task_id].get("num_clf_layers", 1))
             elif task_type == "VL-obj-categorize-probing":
                 print("VL-contrast separated")
+                assert self.probe_layer_idx is not None
+                print("probe_layer_idx")
+                print(self.probe_layer_idx)
                 task2clf[task_id] = ObjCategorizationClassifier(config.hidden_size, self.task_cfg[task_id]["embed_proj_size"], self.task_cfg[task_id]["attn_latent_size"], self.task_cfg[task_id]["num_obj_classes"],
                                                                    self.task_cfg[task_id]["clf_dropout"], self.task_cfg[task_id].get("num_clf_layers", 2))
             elif task_type == "VL-keywordmlp":
@@ -1432,8 +1436,8 @@ class BertForVLTasks(BertPreTrainedModel):
             pred_scores = pred_scores + ((1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
             vil_prediction = (pred_scores, sim_scores, tgt_obj_class_scores, attn_scores)
         elif self.task_cfg[task_id]["type"] == "VL-obj-categorize-probing":
-            layer_idx = self.task_cfg[task_id]["layer_idx"]
-            pred_scores, attn_scores = self.clfs_dict[task_id](sequence_output_t[layer_idx], attention_mask)
+            #layer_idx = self.task_cfg[task_id]["layer_idx"]
+            pred_scores, attn_scores = self.clfs_dict[task_id](sequence_output_t[self.probe_layer_idx], attention_mask)
             vil_prediction = pred_scores
         elif self.task_cfg[task_id]["type"] == "VL-keywordmlp":
             vil_prediction, attn_score = self.clfs_dict[task_id](input_txt, sequence_output_t, sequence_output_v,

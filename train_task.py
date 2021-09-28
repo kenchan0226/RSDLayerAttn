@@ -62,6 +62,8 @@ def parse_args():
                         help="The config file which specified the tasks details.")
     parser.add_argument("--task", default="", type=str,
                         help="training task number")
+    parser.add_argument("--probe_layer_idx", default=None, type=int,
+                        help="The layer to probe for layer probing")
     # Training
     parser.add_argument("--num_train_epochs", default=20, type=int,
                         help="Total number of training epochs to perform.")
@@ -170,7 +172,7 @@ def main():
         os.makedirs(args.output_dir)
 
     # Model
-    model = BertForVLTasks.from_pretrained(args.from_pretrained, config=config, task_cfg=task_cfg, task_ids=[task])
+    model = BertForVLTasks.from_pretrained(args.from_pretrained, config=config, task_cfg=task_cfg, task_ids=[task], probe_layer_idx=args.probe_layer_idx)
     if task_cfg[task].get("embed_clf", None):
         logger.info('Initializing classifier weight for %s from pretrained word embeddings...' % task)
         answers_word_embed = []
