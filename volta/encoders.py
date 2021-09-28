@@ -1872,7 +1872,7 @@ class ObjCategorizationClassifier(nn.Module):
                 nn.Linear(latent_size, latent_size)
             )
         self.w_alpha = nn.Parameter(torch.empty(latent_size))  # [latent_size]
-        nn.init.xavier_uniform_(self.w_alpha)
+        #nn.init.xavier_uniform_(self.w_alpha)
 
         if num_clf_layers == 1:
             self.out_mlp = nn.Linear(embed_proj_size, num_obj_classes)
