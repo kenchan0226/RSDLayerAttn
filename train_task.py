@@ -21,7 +21,8 @@ import torch
 import torch.distributed as dist
 # from torch.optim.lr_scheduler import LambdaLR, ReduceLROnPlateau, CosineAnnealingLR, CosineAnnealingWarmRestarts
 
-from pytorch_transformers.optimization import AdamW, WarmupConstantSchedule, WarmupLinearSchedule, Adam
+from pytorch_transformers.optimization import AdamW, WarmupConstantSchedule, WarmupLinearSchedule
+from torch.optim import Adam
 
 from volta.config import BertConfig
 from volta.optimization import RAdam
