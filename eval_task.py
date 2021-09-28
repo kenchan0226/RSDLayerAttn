@@ -54,6 +54,8 @@ def parse_args():
                         help="The config file which specified the tasks details.")
     parser.add_argument("--task", default="", type=str,
                         help="training task number")
+    parser.add_argument("--probe_layer_idx", default=None, type=int,
+                        help="The layer to probe for layer probing")
     # Evaluation
     parser.add_argument("--split", default="", type=str,
                         help="which split to use.")
@@ -133,7 +135,7 @@ def main():
                          1, save_logger=False, txt_name="eval.txt")
 
     # Model
-    model = BertForVLTasks.from_pretrained(args.from_pretrained, config=config, task_cfg=task_cfg, task_ids=[task])
+    model = BertForVLTasks.from_pretrained(args.from_pretrained, config=config, task_cfg=task_cfg, task_ids=[task], probe_layer_idx=args.probe_layer_idx)
 
     # Optimization details
     criterion = LoadLoss(task_cfg, args.task)
