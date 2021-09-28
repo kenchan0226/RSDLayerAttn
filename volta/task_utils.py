@@ -233,7 +233,7 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         # tgt object categorization loss
         ref_category_id = ref_category_id.squeeze(1)  # [batch]
         # vil_prediction: [batch, num_classes]
-        loss = criterion["object_categorization"](vil_prediction, ref_category_id)
+        loss = criterion(vil_prediction, ref_category_id)
 
         _, select_obj_cat_idx = torch.max(vil_prediction, dim=1)
         #select_obj_cat_idx: [batch]
@@ -537,7 +537,7 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         # vil_prediction: [batch, num_classes]
         print("vil_prediction")
         print(vil_prediction.size())
-        loss = criterion["object_categorization"](vil_prediction, ref_category_id)
+        loss = criterion(vil_prediction, ref_category_id)
         _, select_obj_cat_idx = torch.max(vil_prediction, dim=1)
         # select_obj_cat_idx: [batch]
         batch_score = torch.sum(select_obj_cat_idx == ref_category_id).item()
@@ -1303,7 +1303,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         # tgt object categorization loss
         ref_category_id = ref_category_id.squeeze(1)  # [batch]
         # vil_prediction: [batch, num_classes]
-        loss = criterion["object_categorization"](vil_prediction, ref_category_id)
+        loss = criterion(vil_prediction, ref_category_id)
 
         _, select_obj_cat_idx = torch.max(vil_prediction, dim=1)
         # select_obj_cat_idx: [batch]
