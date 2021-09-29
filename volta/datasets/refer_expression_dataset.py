@@ -341,6 +341,9 @@ class ReferExpressionTargetObjCategorizationDataset(ReferExpressionDataset):
             )
             remove_ids = [int(x) for x in remove_ids]
 
+        ref_category_id_counter = np.array([0, 0, 0, 0])
+        ref_category_id_list = []
+
         for ref_id in self.ref_ids:
             ref = self.refer.Refs[ref_id]
             image_id = ref["image_id"]
@@ -351,6 +354,24 @@ class ReferExpressionTargetObjCategorizationDataset(ReferExpressionDataset):
             ref_id = ref["ref_id"]
             refBox = self.refer.getRefBox(ref_id)
             ref_ann = self.refer.refToAnn[ref_id]
+
+            # simplify category
+            # ref_id_simplified {0: human, 1: object, 2: vehicle.other, 3: vehicle.car}
+            if 0 < ref_ann["category_id"] <= 7:
+                ref_category_id_simplified = 0
+            elif 7 < ref_ann["category_id"] <= 12:
+                ref_category_id_simplified = 1
+            elif 12 < ref_ann["category_id"] <= 15:
+                ref_category_id_simplified = 2
+            elif ref_ann["category_id"] == 16:
+                ref_category_id_simplified = 3
+            elif 16 < ref_ann["category_id"]:
+                ref_category_id_simplified = 2
+            else:
+                raise ValueError
+            ref_category_id_counter[ref_category_id_simplified] += 1
+            ref_category_id_list.append(ref_category_id_simplified)
+
             for sent, sent_id in zip(ref["sentences"], ref["sent_ids"]):
                 caption = sent["raw"]
                 entries.append(
@@ -360,10 +381,21 @@ class ReferExpressionTargetObjCategorizationDataset(ReferExpressionDataset):
                         "image_id": image_id,
                         "refBox": refBox,
                         #"ref_category_name": ref_ann["category_name"],
-                        "ref_category_id": [ref_ann["category_id"]],
+                        #"ref_category_id": [ref_ann["category_id"]],
+                        "ref_category_id": [ref_category_id_simplified],
                         "ref_id": ref_id,
                     }
                 )
+
+        normalized_category_count = ref_category_id_counter / ref_category_id_counter.sum()
+        category_weights = 1. / normalized_category_count
+        print("ref_category_id_counter")
+        print(ref_category_id_counter)
+        print(normalized_category_count)
+        print("category_weights")
+        print(category_weights)
+        category_weights = torch.from_numpy(category_weights).float()
+        self.sample_category_weights = category_weights[ref_category_id_list]
 
         return entries
 

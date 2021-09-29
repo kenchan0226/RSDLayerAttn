@@ -9,7 +9,7 @@ import logging
 import torch
 import torch.nn as nn
 import torch.distributed as dist
-from torch.utils.data import DataLoader, RandomSampler
+from torch.utils.data import DataLoader, RandomSampler, WeightedRandomSampler
 from torch.utils.data.distributed import DistributedSampler
 
 from transformers import AutoTokenizer
@@ -645,7 +645,12 @@ def LoadDataset(args, config, task_cfg, task_id, split="trainval"):
             append_mask_sep=(config.fusion_method == 'vl-bert_vqa'),
         )
         if args.local_rank == -1:
-            train_sampler = RandomSampler(dset_train)
+            #train_sampler = RandomSampler(dset_train)
+            if args.weighted_sampling:
+                train_sampler = WeightedRandomSampler(dset_train.sample_category_weights, num_samples=len(dset_train),
+                                                      replacement=True)
+            else:
+                train_sampler = RandomSampler(dset_train)
         else:
             train_sampler = DistributedSampler(dset_train)
         dl_train = DataLoader(
