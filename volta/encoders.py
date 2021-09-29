@@ -1279,7 +1279,9 @@ class BertForVLTasks(BertPreTrainedModel):
                 assert self.probe_layer_idx is not None
                 print("probe_layer_idx")
                 print(self.probe_layer_idx)
-                task2clf[task_id] = ObjCategorizationClassifier(config.hidden_size, self.task_cfg[task_id]["embed_proj_size"], self.task_cfg[task_id]["attn_latent_size"], self.task_cfg[task_id]["num_obj_classes"],
+                #task2clf[task_id] = ObjCategorizationClassifier(config.hidden_size, self.task_cfg[task_id]["embed_proj_size"], self.task_cfg[task_id]["attn_latent_size"], self.task_cfg[task_id]["num_obj_classes"],
+                #                                                   self.task_cfg[task_id]["clf_dropout"], self.task_cfg[task_id].get("num_clf_layers", 2))
+                task2clf[task_id] = ObjCategorizationVisionClassifier(config.v_hidden_size, self.task_cfg[task_id]["embed_proj_size"], self.task_cfg[task_id]["attn_latent_size"], self.task_cfg[task_id]["num_obj_classes"],
                                                                    self.task_cfg[task_id]["clf_dropout"], self.task_cfg[task_id].get("num_clf_layers", 2))
             elif task_type == "VL-keywordmlp":
                 print("VL-keywordmlp classifier")
@@ -1437,7 +1439,8 @@ class BertForVLTasks(BertPreTrainedModel):
             vil_prediction = (pred_scores, sim_scores, tgt_obj_class_scores, attn_scores)
         elif self.task_cfg[task_id]["type"] == "VL-obj-categorize-probing":
             #layer_idx = self.task_cfg[task_id]["layer_idx"]
-            pred_scores, attn_scores = self.clfs_dict[task_id](sequence_output_t[self.probe_layer_idx], attention_mask)
+            #pred_scores, attn_scores = self.clfs_dict[task_id](sequence_output_t[self.probe_layer_idx], attention_mask)
+            pred_scores, attn_scores = self.clfs_dict[task_id](sequence_output_v[self.probe_layer_idx], attention_mask)
             vil_prediction = pred_scores
         elif self.task_cfg[task_id]["type"] == "VL-keywordmlp":
             vil_prediction, attn_score = self.clfs_dict[task_id](input_txt, sequence_output_t, sequence_output_v,
@@ -1863,6 +1866,86 @@ class AttnBasedContrastiveTgtObjCategorizationClassifier(nn.Module):
         #print(tgt_obj_class_scores.size())
 
         return pred_scores, sim_scores, tgt_obj_class_scores, attn_score
+
+
+class ObjCategorizationVisionClassifier(nn.Module):
+    def __init__(self, v_hidden_size, embed_proj_size, latent_size, num_obj_classes, dropout_prob=0.1, num_clf_layers=2):
+        super(ObjCategorizationVisionClassifier, self).__init__()
+        self.embed_proj_layer = nn.Linear(v_hidden_size, embed_proj_size)
+        self.attn_proj_layer = nn.Sequential(
+                nn.Linear(embed_proj_size, latent_size),
+                nn.ReLU(),
+                torch.nn.Dropout(dropout_prob),
+                nn.Linear(latent_size, latent_size)
+            )
+        self.w_alpha = nn.Parameter(torch.empty(latent_size))  # [latent_size]
+        #nn.init.xavier_uniform_(self.w_alpha)
+
+        if num_clf_layers == 1:
+            self.out_mlp = nn.Linear(embed_proj_size, num_obj_classes)
+        elif num_clf_layers == 2:
+            self.out_mlp = torch.nn.Sequential(
+                nn.Linear(embed_proj_size, embed_proj_size),
+                nn.ReLU(),
+                torch.nn.Dropout(dropout_prob),
+                nn.Linear(embed_proj_size, num_obj_classes)
+            )
+        else:
+            raise ValueError
+        self.dropout = torch.nn.Dropout(dropout_prob)
+        print("ObjCategorizationClassifier built")
+
+    def compute_vision_attentive_feature(self, sequence_output_v, attn_mask_v):
+        """
+        :param sequence_output_v: [batch, seq_len, embed_proj_size]
+        :param attn_mask_v:
+        :return:
+        """
+        # Compute self attention over text
+        batch_size = sequence_output_v.size(0)
+        sequence_output_v_projected = self.attn_proj_layer(sequence_output_v)  # [batch, seq_len, latent_size]
+        #print("sequence_output_t_projected")
+        #print(sequence_output_t_projected.size())
+        w_alpha_expanded = self.w_alpha.view(1, -1, 1)  # [1, latent_size, 1]
+        w_alpha_expanded = w_alpha_expanded.expand(batch_size, -1, -1)  # [batch, latent_size, 1]
+        #print("w_alpha_expanded")
+        #print(w_alpha_expanded.size())
+
+        attn_score_unnormalized = torch.bmm(sequence_output_v_projected, w_alpha_expanded).squeeze(2)  # [batch, seq_len]
+        #print("attn_score_unnormalized")
+        #print(attn_score_unnormalized.size())
+
+        # Masked softamx
+        attn_score = masked_softmax(attn_score_unnormalized, mask=attn_mask_v, dim=1)  # [batch, seq_len]
+        # print("attn_score")
+        # print(attn_score.size())
+        # print(attn_score[0,:].detach().cpu().numpy())
+        attn_score = attn_score.unsqueeze(1)  # [batch_size, 1, seq_len]
+        v_context = torch.bmm(attn_score, sequence_output_v)  # [batch_size, 1, embed_proj_size]
+        v_context = v_context.squeeze(1)  # [batch_size, embed_proj_size]
+        attn_score = attn_score.squeeze(1)  # [batch_size, seq_len]
+        #print("t_context")
+        #print(t_context.size())
+        return v_context, attn_score
+
+    def forward(self, sequence_output_v, attn_mask_v):
+        """
+        :param sequence_output_v: [batch, v_seq_len, v_hidden_size]
+        :param attn_mask_v: [batch, v_seq_len]
+        :return:
+        """
+        #print("self.w_alpha")
+        #print(self.w_alpha.requires_grad)
+        #exit()
+        sequence_output_v_projected = self.embed_proj_layer(sequence_output_v)  # [batch, v_seq_len, embed_proj_size]
+        v_context, attn_score = self.compute_vision_attentive_feature(sequence_output_v_projected, attn_mask_v)
+        # v_context: [batch_size, embed_proj_size]
+        # compute object classification output
+        tgt_obj_class_scores = self.out_mlp(v_context)
+        # obj_class: [batch, num_classes]
+        #print("tgt_obj_class_scores")
+        #print(tgt_obj_class_scores.size())
+        return tgt_obj_class_scores, attn_score
 
 
 class ObjCategorizationClassifier(nn.Module):
