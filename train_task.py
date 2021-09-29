@@ -64,6 +64,8 @@ def parse_args():
                         help="training task number")
     parser.add_argument("--probe_layer_idx", default=None, type=int,
                         help="The layer to probe for layer probing")
+    parser.add_argument("--weighted_sampling", default=False, action='store_true',
+                        help="Use weighted random sampler for imbalanced learning.")
     # Training
     parser.add_argument("--num_train_epochs", default=20, type=int,
                         help="Total number of training epochs to perform.")
