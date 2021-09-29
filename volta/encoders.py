@@ -1440,7 +1440,7 @@ class BertForVLTasks(BertPreTrainedModel):
         elif self.task_cfg[task_id]["type"] == "VL-obj-categorize-probing":
             #layer_idx = self.task_cfg[task_id]["layer_idx"]
             #pred_scores, attn_scores = self.clfs_dict[task_id](sequence_output_t[self.probe_layer_idx], attention_mask)
-            pred_scores, attn_scores = self.clfs_dict[task_id](sequence_output_v[self.probe_layer_idx], attention_mask)
+            pred_scores, attn_scores = self.clfs_dict[task_id](sequence_output_v[self.probe_layer_idx], image_attention_mask)
             vil_prediction = pred_scores
         elif self.task_cfg[task_id]["type"] == "VL-keywordmlp":
             vil_prediction, attn_score = self.clfs_dict[task_id](input_txt, sequence_output_t, sequence_output_v,
