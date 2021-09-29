@@ -1937,8 +1937,8 @@ class ObjCategorizationVisionClassifier(nn.Module):
         #print("self.w_alpha")
         #print(self.w_alpha.requires_grad)
         #exit()
-        print("attn_mask_v")
-        print(attn_mask_v.size())
+        #print("attn_mask_v")
+        #print(attn_mask_v.size())
         sequence_output_v_projected = self.embed_proj_layer(sequence_output_v)  # [batch, v_seq_len, embed_proj_size]
         v_context, attn_score = self.compute_vision_attentive_feature(sequence_output_v_projected, attn_mask_v)
         # v_context: [batch_size, embed_proj_size]
