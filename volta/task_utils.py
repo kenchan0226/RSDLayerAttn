@@ -1308,7 +1308,13 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         # tgt object categorization loss
         ref_category_id = ref_category_id.squeeze(1)  # [batch]
         # vil_prediction: [batch, num_classes]
+        print("vil_prediction")
+        print(vil_prediction.detach().cpu().numpy())
+        print("ref_category_id")
+        print(ref_category_id.detach().cpu().numpy())
         loss = criterion(vil_prediction, ref_category_id)
+        print("loss")
+        print(loss.detach().cpu().numpy())
 
         _, select_obj_cat_idx = torch.max(vil_prediction, dim=1)
         # select_obj_cat_idx: [batch]
