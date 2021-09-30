@@ -183,7 +183,7 @@ def main():
         sys.stdout.flush()
     # save the result or evaluate the result.
     if task_id == "91":
-        avg_score = f1_score(ref_all, pred_all, average='micro')
+        avg_score = f1_score(ref_all, pred_all, average='macro')
         print("score: {:.2f}".format(avg_score*100))
     else:
         ave_score = tb_logger.showLossVal(task)
