@@ -316,6 +316,8 @@ def main():
 
 def evaluate(config, dataloader_val, task_cfg, device, task_id, model, criterion, epoch_id, default_gpu, tb_logger):
     model.eval()
+    print("task_id")
+    print(task_id)
     if task_id == "91":  # for computing micro f1 score for probing task
         pred_all = []
         ref_all = []
