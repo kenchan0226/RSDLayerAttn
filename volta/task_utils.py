@@ -1316,8 +1316,8 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         _, select_obj_cat_idx = torch.max(vil_prediction, dim=1)
 
         # random guess
-        batch_size, num_classes = vil_prediction.size()
-        select_obj_cat_idx = torch.randint(low=0, high=num_classes, size=(batch_size,1)).squeeze(1).cuda()
+        #batch_size, num_classes = vil_prediction.size()
+        #select_obj_cat_idx = torch.randint(low=0, high=num_classes, size=(batch_size,1)).squeeze(1).cuda()
 
         # select_obj_cat_idx: [batch]
         acc = torch.sum(select_obj_cat_idx == ref_category_id).item()
