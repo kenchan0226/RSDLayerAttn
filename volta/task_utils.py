@@ -275,7 +275,8 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         loss = loss.mean()
         batch_score = compute_score_with_logits(vil_prediction, target).sum()
 
-    return float(loss), float(batch_score), batch_size
+    #return float(loss), float(batch_score), batch_size
+    return float(loss), batch_score, batch_size
 
 
 def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterion):
