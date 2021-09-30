@@ -335,6 +335,7 @@ def evaluate(config, dataloader_val, task_cfg, device, task_id, model, criterion
             sys.stdout.flush()
     if task_id == "TASK91":
         score = f1_score(ref_all, pred_all, average='macro')
+        logger.info('validation score: {:.2f}'.format(score * 100))
     else:
         score = tb_logger.showLossVal(task_id)
     model.train()

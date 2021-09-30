@@ -643,6 +643,6 @@ TASK91:
   val_split: test
   embed_proj_size: 256
   attn_latent_size: 150
-  num_obj_classes: 23
+  num_obj_classes: 4
   num_clf_layers: 2
   clf_dropout: 0.2
