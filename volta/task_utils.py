@@ -11,6 +11,7 @@ import torch.nn as nn
 import torch.distributed as dist
 from torch.utils.data import DataLoader, RandomSampler, WeightedRandomSampler
 from torch.utils.data.distributed import DistributedSampler
+from sklearn.metrics import f1_score
 
 from transformers import AutoTokenizer
 
@@ -1306,19 +1307,43 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
 
     elif task_cfg[task_id]["type"] == "VL-obj-categorize-probing":
         # tgt object categorization loss
-        ref_category_id = ref_category_id.squeeze(1)  # [batch]
+        ref_category_id_squeezed = ref_category_id.squeeze(1)  # [batch]
         # vil_prediction: [batch, num_classes]
-        #print("vil_prediction")
-        #print(vil_prediction.detach().cpu().numpy())
-        #print("ref_category_id")
-        #print(ref_category_id.detach().cpu().numpy())
-        loss = criterion(vil_prediction, ref_category_id)
-        #print("loss")
-        #print(loss.detach().cpu().numpy())
+        loss = criterion(vil_prediction, ref_category_id_squeezed)
 
         _, select_obj_cat_idx = torch.max(vil_prediction, dim=1)
         # select_obj_cat_idx: [batch]
-        batch_score = torch.sum(select_obj_cat_idx == ref_category_id).item()
+        # convert select_obj_cat_idx to one-hot vector
+        num_classes = vil_prediction.size(1)
+        select_obj_cat_idx = select_obj_cat_idx.unsqueeze(1)  # [batch, 1]
+        select_obj_cat_idx_one_hot = torch.FloatTensor(batch_size, num_classes)
+        select_obj_cat_idx_one_hot.zero_()
+        select_obj_cat_idx_one_hot.scatter_(1, select_obj_cat_idx.cpu(), 1)
+        # convert ref_category_id to one-hot vector
+        ref_category_id_one_hot = torch.FloatTensor(batch_size, num_classes)
+        ref_category_id_one_hot.zero_()
+        ref_category_id_one_hot.scatter_(1, ref_category_id.cpu(), 1)
+        # compute f1 score
+        batch_score = f1_score(ref_category_id_one_hot.detach().numpy(), select_obj_cat_idx_one_hot.detach().numpy(),
+                               average='none').sum()
+
+        print("select_obj_cat_idx")
+        print(select_obj_cat_idx.size())
+        print(select_obj_cat_idx[:3].detach().cpu().numpy())
+        print("select_obj_cat_idx_one_hot")
+        print(select_obj_cat_idx_one_hot.size())
+        print(select_obj_cat_idx_one_hot[:3].numpy())
+        print("ref_category_id")
+        print(ref_category_id.size())
+        print(ref_category_id[:3].detach().cpu().numpy())
+        print("ref_category_id_one_hot")
+        print(ref_category_id_one_hot.size())
+        print(ref_category_id_one_hot[:3].numpy())
+        print("f1score")
+        print(batch_score)
+        exit()
+        # Acc:
+        #batch_score = torch.sum(select_obj_cat_idx == ref_category_id).item()
 
         for i in range(select_obj_cat_idx.size(0)):
             results.append(
