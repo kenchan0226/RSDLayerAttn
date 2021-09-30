@@ -1324,8 +1324,9 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         ref_category_id_one_hot.zero_()
         ref_category_id_one_hot.scatter_(1, ref_category_id.cpu(), 1)
         # compute f1 score
-        batch_score = f1_score(ref_category_id_one_hot.detach().numpy(), select_obj_cat_idx_one_hot.detach().numpy(),
-                               average=None).sum()
+        batch_score_all = f1_score(ref_category_id_one_hot.detach().numpy(), select_obj_cat_idx_one_hot.detach().numpy(),
+                               average=None)
+        batch_score = batch_score_all.sum()
 
         print("select_obj_cat_idx")
         print(select_obj_cat_idx.size())
@@ -1340,6 +1341,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         print(ref_category_id_one_hot.size())
         print(ref_category_id_one_hot[:3].numpy())
         print("f1score")
+        print(batch_score_all)
         print(batch_score)
         exit()
         # Acc:
