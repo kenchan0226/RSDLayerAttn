@@ -332,7 +332,7 @@ def evaluate(config, dataloader_val, task_cfg, device, task_id, model, criterion
             sys.stdout.write("%d/%d\r" % (i, len(dataloader_val)))
             sys.stdout.flush()
     if task_id == "91":
-        score = f1_score(ref_all, pred_all, average='micro')
+        score = f1_score(ref_all, pred_all, average='macro')
     else:
         score = tb_logger.showLossVal(task_id)
     model.train()
