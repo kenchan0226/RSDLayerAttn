@@ -14,6 +14,7 @@ import argparse
 from io import open
 from tqdm import tqdm
 from easydict import EasyDict as edict
+from sklearn.metrics import f1_score
 
 import numpy as np
 
@@ -315,13 +316,25 @@ def main():
 
 def evaluate(config, dataloader_val, task_cfg, device, task_id, model, criterion, epoch_id, default_gpu, tb_logger):
     model.eval()
+    if task_id == "91":  # for computing micro f1 score for probing task
+        pred_all = []
+        ref_all = []
+        print("init holder for f1 score")
     for i, batch in enumerate(dataloader_val):
         loss, score, batch_size = ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
+        if task_id == "91":  # for probing task
+            acc_score, pred_list, ref_list = score
+            pred_all += pred_list
+            ref_all += ref_list
+            score = acc_score
         tb_logger.step_val(epoch_id, float(loss), float(score), task_id, batch_size, "val")
         if default_gpu:
             sys.stdout.write("%d/%d\r" % (i, len(dataloader_val)))
             sys.stdout.flush()
-    score = tb_logger.showLossVal(task_id)
+    if task_id == "91":
+        score = f1_score(ref_all, pred_all, average='micro')
+    else:
+        score = tb_logger.showLossVal(task_id)
     model.train()
     return score
 

@@ -14,6 +14,7 @@ import argparse
 from io import open
 from tqdm import tqdm
 from easydict import EasyDict as edict
+from sklearn.metrics import f1_score
 
 import numpy as np
 
@@ -164,14 +165,28 @@ def main():
     results = []
     others = []
     bbox = []
+
+    if task_id == "91":  # for computing micro f1 score for probing task
+        pred_all = []
+        ref_all = []
+        print("init holder for f1 score")
     for i, batch in tqdm(enumerate(dl_val), total=task2num_iters[task]):
         loss, score, batch_size, results, others, bbox = EvaluatingModel(config, task_cfg, device, task, batch,
                                                                    model, dl_val, criterion, results, others, bbox)
+        if task_id == "91":  # for probing task
+            acc_score, pred_list, ref_list = score
+            pred_all += pred_list
+            ref_all += ref_list
+            score = acc_score
         tb_logger.step_val(0, float(loss), float(score), task, batch_size, "val")
         sys.stdout.write("%d/%d\r" % (i, len(dl_val)))
         sys.stdout.flush()
     # save the result or evaluate the result.
-    ave_score = tb_logger.showLossVal(task)
+    if task_id == "91":
+        avg_score = f1_score(ref_all, pred_all, average='micro')
+        print("score: {:.2f}".format(avg_score*100))
+    else:
+        ave_score = tb_logger.showLossVal(task)
 
     if args.split:
         json_path = os.path.join(savePath, args.split)
