@@ -1343,9 +1343,12 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         print("f1score")
         print(batch_score_all[:3])
         print(batch_score)
-        exit()
         # Acc:
-        #batch_score = torch.sum(select_obj_cat_idx == ref_category_id).item()
+        acc = torch.sum(select_obj_cat_idx.squeeze(1) == ref_category_id_squeezed).item()
+        print("acc")
+        print(acc)
+        exit()
+        #batch_score = torch.sum(select_obj_cat_idx == ref_category_id_squeezed).item()
 
         for i in range(select_obj_cat_idx.size(0)):
             results.append(
