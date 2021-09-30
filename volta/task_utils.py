@@ -1350,4 +1350,5 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         loss = loss.mean()
         batch_score = compute_score_with_logits(vil_prediction, target).sum()
 
-    return float(loss), float(batch_score), batch_size, results, others, bbox
+    #return float(loss), float(batch_score), batch_size, results, others, bbox
+    return float(loss), batch_score, batch_size, results, others, bbox
