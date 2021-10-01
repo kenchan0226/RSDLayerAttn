@@ -2350,7 +2350,7 @@ class MultiLayerFineAttnFusionClassifier(nn.Module):
         #self.layer_weights = nn.Parameter(torch.empty(num_layers))  # [num_layers]
         self.layer_weights = nn.Parameter(torch.empty(num_layers, v_hidden_size))  # [num_layers, v_hidden_size]
         #nn.init.xavier_normal_(self.layer_weights)
-        nn.init.xavier_uniform_(self.layer_weights)
+        #nn.init.xavier_uniform_(self.layer_weights)
         #nn.init.uniform_(self.layer_weights, a=-0.1, b=0.1)
         self.layer_fusion_dropout = nn.Dropout(dropout_prob)
 
