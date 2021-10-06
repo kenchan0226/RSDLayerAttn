@@ -1313,11 +1313,14 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         # vil_prediction: [batch, num_classes]
         loss = criterion(vil_prediction, ref_category_id)
 
-        _, select_obj_cat_idx = torch.max(vil_prediction, dim=1)
+        #_, select_obj_cat_idx = torch.max(vil_prediction, dim=1)
 
         # random guess
         #batch_size, num_classes = vil_prediction.size()
         #select_obj_cat_idx = torch.randint(low=0, high=num_classes, size=(batch_size,1)).squeeze(1).cuda()
+        # always guess vehicle.car
+        batch_size, num_classes = vil_prediction.size()
+        select_obj_cat_idx = torch.ones(batch_size).cuda() * 3
 
         # select_obj_cat_idx: [batch]
         acc = torch.sum(select_obj_cat_idx == ref_category_id).item()
