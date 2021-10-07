@@ -666,3 +666,60 @@ TASK91:
   num_obj_classes: 4
   num_clf_layers: 2
   clf_dropout: 0.2
+TASK92:
+  name: refcocog
+  type: V-logit
+  loss: BCEWithLogitLoss
+  process: normal
+  task_id: 92
+  dataroot: data/refcocog_umd/annotations
+  features_h5path1: data/refcocog_umd/resnet101_faster_rcnn_genome_imgfeats/volta/refcocog_umd_dets36_feat.lmdb
+  features_h5path2: ''
+  train_annotations_jsonpath: ''
+  val_annotations_jsonpath: ''
+  max_seq_length: 50
+  max_region_num: 36
+  batch_size: 32
+  eval_batch_size: 256
+  train_split: ''
+  val_split: test
+TASK93:
+  name: refcocog
+  type: V-logit-fuse-self-attention
+  loss: BCEWithLogitLoss
+  process: normal
+  task_id: 93
+  dataroot: data/refcocog_umd/annotations
+  features_h5path1: data/refcocog_umd/resnet101_faster_rcnn_genome_imgfeats/volta/refcocog_umd_dets36_feat.lmdb
+  features_h5path2: ''
+  train_annotations_jsonpath: ''
+  val_annotations_jsonpath: ''
+  max_seq_length: 50
+  max_region_num: 36
+  batch_size: 32
+  eval_batch_size: 256
+  train_split: ''
+  val_split: test
+  num_clf_layers: 1
+  fuse_layers: [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24]
+  layer_fusion_dropout: 0.1
+TASK94:
+  name: refcocog
+  type: V-logit-fuse-self-attention
+  loss: BCEWithLogitLoss
+  process: normal
+  task_id: 94
+  dataroot: data/refcocog_umd/annotations
+  features_h5path1: data/refcocog_umd/resnet101_faster_rcnn_genome_imgfeats/volta/refcocog_umd_dets36_feat.lmdb
+  features_h5path2: ''
+  train_annotations_jsonpath: ''
+  val_annotations_jsonpath: ''
+  max_seq_length: 50
+  max_region_num: 36
+  batch_size: 32
+  eval_batch_size: 256
+  train_split: ''
+  val_split: test
+  num_clf_layers: 1
+  fuse_layers: [0, 2, 4, 6, 8, 10, 21, 24, 27, 30, 33]
+  layer_fusion_dropout: 0.1
