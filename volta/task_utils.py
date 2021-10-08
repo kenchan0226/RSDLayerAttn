@@ -105,8 +105,10 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         segment_ids = segment_ids.repeat(1, 2)
         segment_ids = segment_ids.view(batch_size * 2, int(segment_ids.size(1) / 2))
 
-    if task_cfg[task_id]["type"].startswith("V-logit-fuse") or task_cfg[task_id]["type"] == "VL-obj-categorize-probing":
+    if task_cfg[task_id]["type"].startswith("V-logit-fuse") or task_cfg[task_id]["type"].startswith("VL-obj-categorize-probing"):
         output_all_encoded_layers = True
+    if task_cfg[task_id]["type"] == "VL-obj-categorize-probing-mask-text":
+        input_mask = torch.zeros_like(question)
 
     if output_all_encoded_layers:
         vil_prediction, vision_prediction, linguisic_prediction, _, _, _ = model(question, features, spatials, task_id,
@@ -229,7 +231,7 @@ def ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
 
-    elif task_cfg[task_id]["type"] == "VL-obj-categorize-probing":
+    elif task_cfg[task_id]["type"].startswith("VL-obj-categorize-probing"):
         # tgt object categorization loss
         ref_category_id = ref_category_id.squeeze(1)  # [batch]
         # vil_prediction: [batch, num_classes]
@@ -386,8 +388,11 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         segment_ids = segment_ids.repeat(1, 2)
         segment_ids = segment_ids.view(batch_size * 2, int(segment_ids.size(1) / 2))
 
-    if task_cfg[task_id]["type"].startswith("V-logit-fuse") or task_cfg[task_id]["type"] == "VL-obj-categorize-probing":
+    if task_cfg[task_id]["type"].startswith("V-logit-fuse") or task_cfg[task_id]["type"].startswith("VL-obj-categorize-probing"):
         output_all_encoded_layers = True
+
+    if task_cfg[task_id]["type"] == "VL-obj-categorize-probing-mask-text":
+        input_mask = torch.zeros_like(question)
 
     if output_all_encoded_layers:
         vil_prediction, vision_prediction, linguisic_prediction, _, _, _ = model(question, features, spatials, task_id,
@@ -534,7 +539,7 @@ def ForwardModelsTrain(config, task_cfg, device, task_id, batch, model, criterio
         select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
         batch_score = torch.sum(select_target > 0.5).item()
 
-    elif task_cfg[task_id]["type"] == "VL-obj-categorize-probing":
+    elif task_cfg[task_id]["type"].startswith("VL-obj-categorize-probing"):
         # tgt object categorization loss
         ref_category_id = ref_category_id.squeeze(1)  # [batch]
         # vil_prediction: [batch, num_classes]
@@ -901,8 +906,11 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         segment_ids = segment_ids.repeat(1, 2)
         segment_ids = segment_ids.view(batch_size * 2, int(segment_ids.size(1) / 2))
 
-    if task_cfg[task_id]["type"].startswith("V-logit-fuse") or task_cfg[task_id]["type"] == "VL-obj-categorize-probing":
+    if task_cfg[task_id]["type"].startswith("V-logit-fuse") or task_cfg[task_id]["type"].startswith("VL-obj-categorize-probing"):
         output_all_encoded_layers = True
+
+    if task_cfg[task_id]["type"] == "VL-obj-categorize-probing-mask-text":
+        input_mask = torch.zeros_like(question)
 
     with torch.no_grad():
         if output_all_encoded_layers:
@@ -1307,7 +1315,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
                 }
             )
 
-    elif task_cfg[task_id]["type"] == "VL-obj-categorize-probing":
+    elif task_cfg[task_id]["type"].startswith("VL-obj-categorize-probing"):
         # tgt object categorization loss
         ref_category_id = ref_category_id.squeeze(1)  # [batch]
         # vil_prediction: [batch, num_classes]
