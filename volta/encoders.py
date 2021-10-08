@@ -1274,7 +1274,7 @@ class BertForVLTasks(BertPreTrainedModel):
                 task2clf[task_id] = AttnBasedContrastiveTgtObjCategorizationClassifier(config.hidden_size, config.v_hidden_size,
                                                                    self.task_cfg[task_id]["clf_latent_size"], self.task_cfg[task_id]["num_obj_classes"],
                                                                    dropout_prob, self.task_cfg[task_id].get("num_contrast_proj_layers", 1), self.task_cfg[task_id].get("num_clf_layers", 1))
-            elif task_type == "VL-obj-categorize-probing":
+            elif task_type == "VL-obj-categorize-probing" or "VL-obj-categorize-probing-mask-text":
                 print("VL-contrast separated")
                 assert self.probe_layer_idx is not None
                 print("probe_layer_idx")
@@ -1437,7 +1437,7 @@ class BertForVLTasks(BertPreTrainedModel):
             pred_scores, sim_scores, tgt_obj_class_scores, attn_scores = self.clfs_dict[task_id](input_txt, sequence_output_t, sequence_output_v, attention_mask, image_attention_mask)
             pred_scores = pred_scores + ((1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
             vil_prediction = (pred_scores, sim_scores, tgt_obj_class_scores, attn_scores)
-        elif self.task_cfg[task_id]["type"] == "VL-obj-categorize-probing":
+        elif self.task_cfg[task_id]["type"] == "VL-obj-categorize-probing" or "VL-obj-categorize-probing-mask-text":
             #layer_idx = self.task_cfg[task_id]["layer_idx"]
             #pred_scores, attn_scores = self.clfs_dict[task_id](sequence_output_t[self.probe_layer_idx], attention_mask)
             pred_scores, attn_scores = self.clfs_dict[task_id](sequence_output_v[self.probe_layer_idx], image_attention_mask)
