@@ -166,14 +166,14 @@ def main():
     others = []
     bbox = []
 
-    if task_id == "91":  # for computing micro f1 score for probing task
+    if task_id == "91" or "95":  # for computing micro f1 score for probing task
         pred_all = []
         ref_all = []
         print("init holder for f1 score")
     for i, batch in tqdm(enumerate(dl_val), total=task2num_iters[task]):
         loss, score, batch_size, results, others, bbox = EvaluatingModel(config, task_cfg, device, task, batch,
                                                                    model, dl_val, criterion, results, others, bbox)
-        if task_id == "91":  # for probing task
+        if task_id == "91" or "95":  # for probing task
             acc_score, pred_list, ref_list = score
             pred_all += pred_list
             ref_all += ref_list
@@ -182,7 +182,7 @@ def main():
         sys.stdout.write("%d/%d\r" % (i, len(dl_val)))
         sys.stdout.flush()
     # save the result or evaluate the result.
-    if task_id == "91":
+    if task_id == "91" or "95":
         acc_score = tb_logger.showLossVal(task)
         micro_f1 = f1_score(ref_all, pred_all, average='micro')
         macro_f1 = f1_score(ref_all, pred_all, average='macro')

@@ -318,13 +318,13 @@ def evaluate(config, dataloader_val, task_cfg, device, task_id, model, criterion
     model.eval()
     print("task_id")
     print(task_id)
-    if task_id == "TASK91":  # for computing micro f1 score for probing task
+    if task_id == "TASK91" or "TASK95":  # for computing micro f1 score for probing task
         pred_all = []
         ref_all = []
         print("init holder for f1 score")
     for i, batch in enumerate(dataloader_val):
         loss, score, batch_size = ForwardModelsVal(config, task_cfg, device, task_id, batch, model, criterion)
-        if task_id == "TASK91":  # for probing task
+        if task_id == "TASK91" or "TASK95":  # for probing task
             acc_score, pred_list, ref_list = score
             pred_all += pred_list
             ref_all += ref_list
@@ -333,7 +333,7 @@ def evaluate(config, dataloader_val, task_cfg, device, task_id, model, criterion
         if default_gpu:
             sys.stdout.write("%d/%d\r" % (i, len(dataloader_val)))
             sys.stdout.flush()
-    if task_id == "TASK91":
+    if task_id == "TASK91" or "TASK95":
         score = f1_score(ref_all, pred_all, average='macro')
         logger.info('validation score: {:.2f}'.format(score * 100))
     else:
