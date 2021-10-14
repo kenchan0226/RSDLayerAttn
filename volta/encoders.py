@@ -1387,7 +1387,8 @@ class BertForVLTasks(BertPreTrainedModel):
                 dtype=next(self.parameters()).dtype)
             #vil_prediction = (pred_scores, layer_attn_scores)
             # save visualization
-            sequence_output_v_sample = sequence_output_v[self.task_cfg[task_id]["fuse_layers"]]
+            sequence_output_v_sample = [sequence_output_v[layer_idx] for layer_idx in self.task_cfg[task_id]["fuse_layers"]]
+            #sequence_output_v_sample = sequence_output_v[self.task_cfg[task_id]["fuse_layers"]]
             vil_prediction = (pred_scores, layer_attn_scores, sequence_output_v_sample, image_attention_mask)
 
         elif self.task_cfg[task_id]["type"] == "V-logit-fuse-self-attention-text-vision":
