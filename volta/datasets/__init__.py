@@ -74,6 +74,7 @@ DatasetMapEval = {
     "talk2car": ReferExpressionDataset,
     "talk2carSeqLabel": ReferExpressionSequenceLabelDataset,
     "talk2carTgtObjCategorize": ReferExpressionTargetObjCategorizationDataset,
+    "talk2carVisualization": ReferExpressionDataset,
     "NLVR2": NLVR2Dataset,
     "VisualEntailment": VisualEntailmentDataset,
     "GQA": GQAClassificationDataset,
