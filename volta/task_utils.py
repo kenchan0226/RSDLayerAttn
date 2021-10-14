@@ -805,7 +805,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
     if task_cfg[task_id]["type"] == "V-logit-mc":
         features, spatials, image_mask, question, target, input_mask, segment_ids, multi_choice_ids, question_id = batch
     elif task_cfg[task_id]["type"].startswith("VL-contrast") or task_cfg[task_id]["type"].startswith("V-logit") or task_cfg[task_id][
-            "type"] == "VL-keywordmlp":
+            "type"] == "VL-keywordmlp" or task_cfg[task_id]["type"] == "VL-visualization":
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id = batch
     elif task_cfg[task_id]["type"].startswith("VL-seq-label"):
         features, spatials, spatials_ori, image_mask, question, target, input_mask, segment_ids, question_id, sequence_labels_target = batch
@@ -906,7 +906,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         segment_ids = segment_ids.repeat(1, 2)
         segment_ids = segment_ids.view(batch_size * 2, int(segment_ids.size(1) / 2))
 
-    if task_cfg[task_id]["type"].startswith("V-logit-fuse") or task_cfg[task_id]["type"].startswith("VL-obj-categorize-probing"):
+    if task_cfg[task_id]["type"].startswith("V-logit-fuse") or task_cfg[task_id]["type"].startswith("VL-obj-categorize-probing") or task_cfg[task_id]["type"].startswith("VL-visualization"):
         output_all_encoded_layers = True
 
     if task_cfg[task_id]["type"] == "VL-obj-categorize-probing-mask-text":
@@ -1314,6 +1314,66 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
                     "attention_score": attn_scores[i]
                 }
             )
+    elif task_cfg[task_id]["type"].startswith("VL-visualization"):
+        pred_scores, layer_attn_scores, sequence_output_v_sample, image_attention_mask = vil_prediction
+        loss = criterion(pred_scores, target)
+        loss = loss.mean() * target.size(1)
+        # print()
+        # print(vil_prediction.size())
+        # print("vil_prediction")
+        # print(vil_prediction[0,:,0])
+        # vli_predition: [batch, num_regions, 1]
+        _, select_idx = torch.max(pred_scores, dim=1)
+        # print(select_idx.size())
+        # print("idx")
+        # print(select_idx[0])
+        # print("target")
+        # print(target.size())
+        # print("spatials_ori")
+        # print(spatials_ori[select_idx[0],:4])
+        # exit()
+        select_target = target.squeeze(2).gather(1, select_idx.view(-1, 1))
+        batch_score = torch.sum(select_target > 0.5).item()
+
+        layer_attn_scores = layer_attn_scores.tolist()
+        image_mask = image_mask.tolist()  # [batch, v_seq_len]
+
+        for i in range(select_idx.size(0)):
+            bbox_item = spatials_ori[i, select_idx[i], :4].cpu().detach().tolist()
+            bbox_item = bbox_item[0]
+            bbox.append(
+                {
+                    question_id[i].item(): [bbox_item[0], bbox_item[1], bbox_item[2] - bbox_item[0],
+                                            bbox_item[3] - bbox_item[1]]
+                    # question_id[i].item(): spatials_ori[i, select_idx[i],:4].cpu().detach().tolist()
+                }
+            )
+            results.append(
+                {
+                    "id": question_id[i].item(),
+                    "target": select_idx[i].item(),
+                    "IOU": select_target[i].item(),
+                    "v_seq_len": sum(image_mask[i]),
+                    "layer_attn_scores": layer_attn_scores[i],
+                    "region_all_IOU": target[i].tolist()
+                }
+            )
+
+        # Dump sequence_output_v_sample, image_attention_mask
+        # list with len=13
+        sequence_output_v_sample_cpu = []
+        for layer in sequence_output_v_sample:
+            sequence_output_v_sample_cpu.append(layer.cpu())
+        image_attention_mask - image_attention_mask.cpu()  # [batch_size, v_seq_len]
+        torch.save(sequence_output_v_sample_cpu, './visualization_output/sequence_output_v.pt')
+        torch.save(image_attention_mask, './visualization_output/image_attention_mask.pt')
+        print("sequence_output_v_sample_cpu")
+        print(len(sequence_output_v_sample_cpu))
+        print(sequence_output_v_sample_cpu[0].size())
+        print("image_attention_mask")
+        print(image_attention_mask.size())
+        print("finished")
+        exit()
 
     elif task_cfg[task_id]["type"].startswith("VL-obj-categorize-probing"):
         # tgt object categorization loss
