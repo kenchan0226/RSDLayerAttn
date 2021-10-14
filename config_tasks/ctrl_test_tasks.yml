@@ -726,7 +726,7 @@ TASK94:
 TASK100:
   name: talk2carVisualization
   type: VL-visualization
-  loss: CrossEntropyLoss
+  loss: BCEWithLogitLoss
   process: normal
   task_id: 100
   dataroot: data/talk2car/annotations
