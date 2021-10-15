@@ -1365,8 +1365,8 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         for layer in sequence_output_v_sample:
             sequence_output_v_sample_cpu.append(layer.cpu())
         image_attention_mask = image_attention_mask.cpu()  # [batch_size, v_seq_len]
-        torch.save(sequence_output_v_sample_cpu, './visualization_output/sequence_output_v.pt')
-        torch.save(image_attention_mask, './visualization_output/image_attention_mask.pt')
+        torch.save(sequence_output_v_sample_cpu, './visualization_output/lxmert_sequence_output_v.pt')
+        torch.save(image_attention_mask, './visualization_output/lxmert_image_attention_mask.pt')
         print("sequence_output_v_sample_cpu")
         print(len(sequence_output_v_sample_cpu))
         print(sequence_output_v_sample_cpu[0].size())
