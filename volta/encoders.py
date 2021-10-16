@@ -1381,7 +1381,7 @@ class BertForVLTasks(BertPreTrainedModel):
             #print(layer_attn_scores.size())
             #exit()
         elif self.task_cfg[task_id]["type"] == "VL-visualization":
-            pred_scores, layer_attn_scores = self.clfs_dict[task_id](sequence_output_v)
+            pred_scores, layer_attn_scores, fused_representation_v = self.clfs_dict[task_id](sequence_output_v)
             # mask out padding
             pred_scores = pred_scores + ((1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(
                 dtype=next(self.parameters()).dtype)
@@ -1389,7 +1389,7 @@ class BertForVLTasks(BertPreTrainedModel):
             # save visualization
             sequence_output_v_sample = [sequence_output_v[layer_idx] for layer_idx in self.task_cfg[task_id]["fuse_layers"]]
             #sequence_output_v_sample = sequence_output_v[self.task_cfg[task_id]["fuse_layers"]]
-            vil_prediction = (pred_scores, layer_attn_scores, sequence_output_v_sample, image_attention_mask)
+            vil_prediction = (pred_scores, layer_attn_scores, sequence_output_v_sample, image_attention_mask, fused_representation_v)
 
         elif self.task_cfg[task_id]["type"] == "V-logit-fuse-self-attention-text-vision":
             pred_scores, layer_attn_scores_v, layer_attn_scores_t, keyword_attn_scores = self.clfs_dict[task_id](input_txt, sequence_output_t, sequence_output_v,
@@ -2126,7 +2126,8 @@ class MultiLayerSelfAttnFusionClassifier(nn.Module):
         #print("fused_representation_v")
         #print(fused_representation_v.size())
         region_clf_logit = self.clf(self.dropout(fused_representation_v))  # [batch, v_seq_len, 1]
-        return region_clf_logit, layer_weights_normalized.squeeze(3)
+        return region_clf_logit, layer_weights_normalized.squeeze(3), fused_representation_v
+        #return region_clf_logit, layer_weights_normalized.squeeze(3)
 
 
 class MultiLayerPooledSelfAttnFusionClassifier(nn.Module):

@@ -1315,7 +1315,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
                 }
             )
     elif task_cfg[task_id]["type"].startswith("VL-visualization"):
-        pred_scores, layer_attn_scores, sequence_output_v_sample, image_attention_mask = vil_prediction
+        pred_scores, layer_attn_scores, sequence_output_v_sample, image_attention_mask, fused_representation_v = vil_prediction
         loss = criterion(pred_scores, target)
         loss = loss.mean() * target.size(1)
         # print()
@@ -1365,13 +1365,16 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         for layer in sequence_output_v_sample:
             sequence_output_v_sample_cpu.append(layer.cpu())
         image_attention_mask = image_attention_mask.cpu()  # [batch_size, v_seq_len]
-        torch.save(sequence_output_v_sample_cpu, './visualization_output/lxmert_sequence_output_v.pt')
-        torch.save(image_attention_mask, './visualization_output/lxmert_image_attention_mask.pt')
+        #torch.save(sequence_output_v_sample_cpu, './visualization_output/lxmert_sequence_output_v.pt')
+        #torch.save(image_attention_mask, './visualization_output/lxmert_image_attention_mask.pt')
+        torch.save(fused_representation_v, './visualization_output/uniter_fused_representation_v.pt')
         print("sequence_output_v_sample_cpu")
         print(len(sequence_output_v_sample_cpu))
         print(sequence_output_v_sample_cpu[0].size())
         print("image_attention_mask")
         print(image_attention_mask.size())
+        print("fused_representation_v")
+        print(fused_representation_v.size())
         print("finished")
         exit()
 
