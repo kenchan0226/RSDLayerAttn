@@ -764,7 +764,7 @@ TASK101:
   fuse_layers: [0, 2, 4, 6, 8, 10, 21, 24, 27, 30, 33]
   layer_fusion_dropout: 0.1
 TASK102:
-  name: talk2carVisualizationOriginal
+  name: talk2carVisualization
   type: VL-visualization-original
   loss: BCEWithLogitLoss
   process: normal
