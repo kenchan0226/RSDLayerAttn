@@ -1381,7 +1381,7 @@ class BertForVLTasks(BertPreTrainedModel):
             #print(layer_attn_scores.size())
             #exit()
         elif self.task_cfg[task_id]["type"] == "VL-visualization-original":
-            pred_scores = self.clfs_dict[task_id](self.dropout(sequence_output_v)) + (
+            pred_scores = self.clfs_dict[task_id](self.dropout(sequence_output_v[-1])) + (
                     (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
             # save visualization
             sequence_output_v_sample = [sequence_output_v[layer_idx] for layer_idx in self.task_cfg[task_id]["fuse_layers"]]
