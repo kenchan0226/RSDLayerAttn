@@ -1182,7 +1182,7 @@ class BertForVLTasks(BertPreTrainedModel):
                 task2clf[task_id] = nn.Linear(config.pooler_size, 3)  # for Visual Entailiment tasks
             elif task_type == "VL-logit":
                 task2clf[task_id] = nn.Linear(config.pooler_size, 1)
-            elif task_type == "V-logit":
+            elif task_type == "V-logit" or task_type == "VL-visualization-original":
                 print("VL-logit classifier")
                 if task_cfg[task_id].get("num_clf_layers", 1) == 2:
                     task2clf[task_id] = torch.nn.Sequential(
@@ -1380,6 +1380,14 @@ class BertForVLTasks(BertPreTrainedModel):
             #print(pred_scores.size())
             #print(layer_attn_scores.size())
             #exit()
+        elif self.task_cfg[task_id]["type"] == "VL-visualization-original":
+            pred_scores = self.clfs_dict[task_id](self.dropout(sequence_output_v)) + (
+                    (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
+            # save visualization
+            sequence_output_v_sample = [sequence_output_v[layer_idx] for layer_idx in self.task_cfg[task_id]["fuse_layers"]]
+            #sequence_output_v_sample = sequence_output_v[self.task_cfg[task_id]["fuse_layers"]]
+            vil_prediction = (pred_scores, sequence_output_v_sample, image_attention_mask)
+
         elif self.task_cfg[task_id]["type"] == "VL-visualization":
             pred_scores, layer_attn_scores, fused_representation_v = self.clfs_dict[task_id](sequence_output_v)
             # mask out padding
