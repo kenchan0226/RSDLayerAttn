@@ -777,7 +777,7 @@ TASK102:
   max_seq_length: 80
   max_region_num: 36
   batch_size: 32
-  eval_batch_size: 256
+  eval_batch_size: 541
   train_split: ''
   val_split: test
   num_clf_layers: 1
