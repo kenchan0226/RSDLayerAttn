@@ -1030,6 +1030,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
                     "id": question_id[i].item(),
                     "target": select_idx[i].item(),
                     "IOU": select_target[i].item(),
+                    "region_all_IOU": target[i].tolist()
                 }
             )
     elif task_cfg[task_id]["type"] == "V-logit-fuse-self-attention" or task_cfg[task_id]["type"] == "V-logit-fuse-self-attention-vseq-mean-pooled":
