@@ -1,7 +1,4 @@
-"""i is the id number of the corresponding image. In order to ensure that the data can be distinguished, we divide it
-into 0-8348 for the train set, 8349-9511 for the verification set, and 9512-11958 for the test set. Therefore,
-when running the script, you need to modify the size of the reference data set to modify the corresponding value,
-and modify the name of the saved file and the name of the corresponding variable. """
+"""construct a mapping between the id of the sample and token in the talk2car dataset"""
 
 import json
 import argparse

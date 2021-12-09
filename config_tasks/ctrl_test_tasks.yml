@@ -290,7 +290,7 @@ TASK47:
   train_split: ''
   val_split: test
   num_clf_layers: 1
-  fuse_layers: [1,3,5,7,9,11,13,15,17,19,21,23]
+  fuse_layers: [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24]
 TASK48:
   name: talk2car
   type: V-logit-fuse
