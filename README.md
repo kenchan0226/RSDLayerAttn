@@ -1,15 +1,10 @@
-# VOLTA: Visiolinguistic Transformer Architectures
+# Grounding Commands for Autonomous Vehicles via Region-specific Dynamic Layer Attention
 
-This is the implementation of the framework described in the paper:
-> Emanuele Bugliarello, Ryan Cotterell, Naoaki Okazaki and Desmond Elliott. [Multimodal Pretraining Unmasked: A Meta-Analysis and a Unified Framework of Vision-and-Language BERTs](https://arxiv.org/abs/2011.15124). Transactions of the Association for Computational Linguistics, 2021.
+This repository contains the source code for our paper "Grounding Commands for Autonomous Vehicles via Region-specific Dynamic Layer Attention". 
 
-We provide the code for reproducing our results, preprocessed data and pretrained models.
-
+Our code is built on the excellent repository of [VOLTA](https://github.com/e-bug/volta). 
 
 ## Repository Setup
-
-You can clone this repository with submodules included issuing: <br>
-`git clone git@github.com:e-bug/volta`
 
 1\. Create a fresh conda environment, and install all dependencies.
 ```text
@@ -40,56 +35,35 @@ cd tools/refer; make
 python setup.py develop
 ```
 
-
 ## Data
-
 Check out [`data/README.md`](data/README.md) for links to preprocessed data and data preparation steps.
 
+## Pre-trained Models
 
-## Models
-
-Check out [`MODELS.md`](MODELS.md) for links to pretrained models and how to define new ones in VOLTA.
-
-Model configuration files are stored in [config/](config). 
-
-
-## Training and Evaluation
-
-We provide sample scripts to train (i.e. pretrain or fine-tune) and evaluate models in [examples/](examples).
-These include ViLBERT, LXMERT and VL-BERT as detailed in the original papers, 
-as well as ViLBERT, LXMERT, VL-BERT, VisualBERT and UNITER as specified in our controlled study.
-
-Task configuration files are stored in [config_tasks/](config_tasks).
-
-
-## License
-
-This work is licensed under the MIT license. See [`LICENSE`](LICENSE) for details. 
-Third-party software and data sets are subject to their respective licenses. <br>
-If you find our code/data/models or ideas useful in your research, please consider citing the paper:
+Download the pre-trained UNITER and LXMERT checkpoints provided by VOLTA
 ```
-@article{bugliarello-etal-2021-multimodal,
-    title = "Multimodal Pretraining Unmasked: {A} Meta-Analysis and a Unified Framework of Vision-and-Language {BERT}s",
-    author = "Bugliarello, Emanuele and
-      Cotterell, Ryan and
-      Okazaki, Naoaki and
-      Elliott, Desmond",
-    journal = "Transactions of the Association for Computational Linguistics",
-    year = "2021",
-    url = "https://arxiv.org/abs/2011.15124",
-}
+wget https://sid.erda.dk/share_redirect/FeYIWpMSFg
+mv FeYIWpMSFg checkpoints/conceptual_captions/ctrl_uniter/ctrl_uniter_base/pytorch_model_9.bin
+wget https://sid.erda.dk/share_redirect/Dp1g16DIA5
+mv Dp1g16DIA5 checkpoints/conceptual_captions/ctrl_lxmert/ctrl_lxmert/pytorch_model_9.bin
 ```
 
+## Training
 
-## Acknowledgement
+We provide sample scripts to train our RSD-UNITER and RSD-LXMERT models:
+[examples/ctrl_uniter/talk2car/train_RSD_uniter.sh](examples/ctrl_uniter/talk2car/train_RSD_uniter.sh) and [examples/ctrl_lxmert/talk2car/train_RSD_lxmert.sh](examples/ctrl_uniter/talk2car/train_RSD_uniter.sh)
 
-Our codebase heavily relies on these excellent repositories:
-- [vilbert-multi-task](https://github.com/facebookresearch/vilbert-multi-task)
-- [vilbert_beta](https://github.com/jiasenlu/vilbert_beta)
-- [lxmert](https://github.com/airsplay/lxmert)
-- [VL-BERT](https://github.com/jackroos/VL-BERT)
-- [visualbert](https://github.com/uclanlp/visualbert)
-- [UNITER](https://github.com/ChenRocks/UNITER)
-- [pytorch-transformers](https://github.com/huggingface/pytorch-transformers)
-- [bottom-up-attention](https://github.com/peteanderson80/bottom-up-attention)
-- [transformers](https://github.com/huggingface/transformers)
+## Evaluate
+Run the following script to construct a mapping between the id of the sample and corresponding token in the leaderboard of talk2car
+```
+python3 generate_token.py
+```
+Run inference on the validation and test sets (the computed AP50 score on the test set is always 0 since we do not have the ground-truth):
+[examples/ctrl_lxmert/talk2car/val_RSD_uniter.sh](examples/ctrl_uniter/talk2car/val_RSD_uniter.sh) and [examples/ctrl_lxmert/talk2car/test_RSD_uniter.sh](examples/ctrl_uniter/talk2car/test_RSD_uniter.sh)
+
+Export the predictions to a json file
+```
+python generate_prediction.py --result_path ./results/talk2car/ctrl_uniter/pytorch_model_best.bin-
+```
+
+Submit the json file `./results/talk2car/ctrl_uniter/pytorch_model_best.bin/predictions_for_leaderboard.json` to the leaderboard of Talk2Car [here](https://www.aicrowd.com/challenges/eccv-2020-commands-4-autonomous-vehicles) (create submission button). 

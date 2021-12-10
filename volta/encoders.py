@@ -1205,7 +1205,9 @@ class BertForVLTasks(BertPreTrainedModel):
                                                                          config.v_hidden_size,
                                                                          task_cfg[task_id].get("layer_fusion_dropout",
                                                                                                0.1),
-                                                                         task_cfg[task_id].get("num_clf_layers", 1))
+                                                                         task_cfg[task_id].get("num_clf_layers", 1),
+                                                                       task_cfg[task_id].get("use_bias", True)
+                                                                       )
             elif task_type == "V-logit-fuse-self-attention-vseq-mean-pooled":
                 print("V-logit-fuse-self-attention-vseq-mean-pooled")
                 task2clf[task_id] = MultiLayerPooledSelfAttnFusionClassifier(task_cfg[task_id].fuse_layers,
@@ -2086,8 +2088,77 @@ class MultiLayerFusionClassifier(nn.Module):
         return self.clf(self.dropout(fused_representation_v))
 
 
-class MultiLayerSelfAttnFusionClassifier(nn.Module):
+class MultiLayerRoutingByAgreementFusionClassifier(nn.Module):
     def __init__(self, layer_indices, v_hidden_size, dropout_prob=0.1, num_clf_layers=1):
+        super(MultiLayerRoutingByAgreementFusionClassifier, self).__init__()
+        if num_clf_layers == 1:
+            self.clf = nn.Linear(v_hidden_size, 1)
+        elif num_clf_layers == 2:
+            self.clf = torch.nn.Sequential(
+                        nn.Linear(v_hidden_size, v_hidden_size),
+                        GeLU(),
+                        torch.nn.Dropout(dropout_prob, inplace=False),
+                        nn.Linear(v_hidden_size, 1)
+                    )
+        else:
+            raise ValueError
+        num_layers = len(layer_indices)
+        self.layer_indices = layer_indices
+        self.v_hidden_size = v_hidden_size
+        self.num_capsules = 32
+        self.num_iterations = 3
+        #self.pre_classify_dropout = nn.Dropout(dropout_prob)
+        print("MultiLayerSelfAttnFusionClassifier built")
+        print("Indices: ", layer_indices)
+        print("No. of layers: ", num_layers)
+        self.layer_self_attn = nn.Linear(v_hidden_size, 1)
+        self.V_projection = nn.Linear(v_hidden_size, v_hidden_size/self.num_capsules, bias=False)
+        #nn.init.uniform_(self.layer_weights, a=-0.1, b=0.1)
+        self.dropout = nn.Dropout(dropout_prob)
+
+    def squash(self, tensor, dim=-1):
+        squared_norm = (tensor ** 2).sum(dim=dim, keepdim=True)
+        scale = squared_norm / (1 + squared_norm)
+        return scale * tensor / torch.sqrt(squared_norm)
+
+    def forward(self, sequence_output_v_all):
+        """
+        :param sequence_output_v_all: a tuple of tensor [batch, v_seq_len, v_hidden_size]
+        :return:
+        """
+        #print("sequence_output_v_all")
+        #print(len(sequence_output_v_all))
+        #print(sequence_output_v_all[0].size())
+        target_layers = [sequence_output_v_all[idx] for idx in self.layer_indices]
+        target_layers_tensor = torch.stack(target_layers, dim=2)  # [batch, v_seq_len, num_layers, v_hidden]
+        batch_size, v_seq_len, num_layers, _ = target_layers_tensor.size()
+        #print("target_layers_tensor")
+        #print(target_layers_tensor.size())
+
+        # Routing by agreement
+        # construct V
+        V = self.V_projection(target_layers_tensor)  # [batch, v_seq_len, num_layers, v_hidden/num_capsules]
+        logits = torch.zeros().cuda(batch_size, v_seq_len, num_layers, self.num_capsules)  # [batch, v_seq_len, num_layers, num_capsules]
+        for i in range(self.num_iterations):
+            probs = softmax(logits, dim=-1)  # [batch, v_seq_len, num_layers, num_capsules]
+            outputs = self.squash((probs * priors).sum(dim=2, keepdim=True))
+
+        # Layer attention
+        layer_weights_normalized = F.softmax(self.layer_self_attn(target_layers_tensor), dim=2)  # [batch, v_seq_len, num_layers, 1]
+        layer_weights_normalized_expanded = layer_weights_normalized.expand(-1, -1, -1, self.v_hidden_size)  # [batch, v_seq_len, num_layers, v_hidden]
+
+        fused_representation_v = torch.sum(target_layers_tensor * layer_weights_normalized_expanded, dim=2)  # [batch, v_seq_len, v_hidden]
+        #print("layer_weights_normalized_expanded")
+        #print(layer_weights_normalized_expanded[0,0].detach().cpu().numpy())
+        #print("fused_representation_v")
+        #print(fused_representation_v.size())
+        region_clf_logit = self.clf(self.dropout(fused_representation_v))  # [batch, v_seq_len, 1]
+        return region_clf_logit, layer_weights_normalized.squeeze(3), fused_representation_v
+        #return region_clf_logit, layer_weights_normalized.squeeze(3)
+
+
+class MultiLayerSelfAttnFusionClassifier(nn.Module):
+    def __init__(self, layer_indices, v_hidden_size, dropout_prob=0.1, num_clf_layers=1, use_bias=True):
         super(MultiLayerSelfAttnFusionClassifier, self).__init__()
         if num_clf_layers == 1:
             self.clf = nn.Linear(v_hidden_size, 1)
@@ -2107,7 +2178,7 @@ class MultiLayerSelfAttnFusionClassifier(nn.Module):
         print("MultiLayerSelfAttnFusionClassifier built")
         print("Indices: ", layer_indices)
         print("No. of layers: ", num_layers)
-        self.layer_self_attn = nn.Linear(v_hidden_size, 1)
+        self.layer_self_attn = nn.Linear(v_hidden_size, 1, bias=use_bias)
         #nn.init.uniform_(self.layer_weights, a=-0.1, b=0.1)
         self.dropout = nn.Dropout(dropout_prob)
 
