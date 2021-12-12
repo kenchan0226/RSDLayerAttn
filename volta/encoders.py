@@ -2125,6 +2125,7 @@ class MultiLayerDynamicFusionClassifier(nn.Module):
         """
         target_layers = [sequence_output_v_all[idx] for idx in self.layer_indices]
         sequence_output_v_all = torch.cat(target_layers, dim=2)  # [batch, v_seq_len, num_layers, v_hidden]
+        print(sequence_output_v_all.size())
         batch_size, v_seq_len, num_layers, v_hidden = sequence_output_v_all.size()
         sequence_output_v_all_transformed = sequence_output_v_all.view(batch_size, v_seq_len, num_layers * v_hidden)  # [batch, v_seq_len, num_layers*v_hidden]
         print("sequence_output_v_all_transformed")
