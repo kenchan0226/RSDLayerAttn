@@ -1199,6 +1199,12 @@ class BertForVLTasks(BertPreTrainedModel):
                 task2clf[task_id] = MultiLayerFusionClassifier(task_cfg[task_id].fuse_layers, config.v_hidden_size,
                                                                config.v_attention_probs_dropout_prob,
                                                                task_cfg[task_id].get("num_clf_layers", 1))
+            elif task_type == "V-logit-fuse-dynamic":
+                print("V-logit-fuse-dynamic")
+                #task2clf[task_id] = MultiLayerFusionClassifier(config.v_ff_sublayers, config.v_hidden_size, config.v_attention_probs_dropout_prob, task_cfg[task_id].get("num_clf_layers", 1))
+                task2clf[task_id] = MultiLayerDynamicFusionClassifier(task_cfg[task_id].fuse_layers, config.v_hidden_size,
+                                                               config.v_attention_probs_dropout_prob,
+                                                               task_cfg[task_id].get("num_clf_layers", 1))
             elif task_type == "V-logit-fuse-self-attention" or task_type == "VL-visualization":
                 print("V-logit-fuse-self-attention")
                 task2clf[task_id] = MultiLayerSelfAttnFusionClassifier(task_cfg[task_id].fuse_layers,
@@ -1369,7 +1375,7 @@ class BertForVLTasks(BertPreTrainedModel):
             vil_prediction = self.clfs_dict[task_id](self.dropout(sequence_output_v)) + (
                 (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
             # vil_prediction: [batch, 37, 1]
-        elif self.task_cfg[task_id]["type"] == "V-logit-fuse" or self.task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention" or self.task_cfg[task_id]["type"] == "V-logit-fuse-fine-attention":
+        elif self.task_cfg[task_id]["type"] == "V-logit-fuse" or self.task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention" or self.task_cfg[task_id]["type"] == "V-logit-fuse-fine-attention" or self.task_cfg[task_id]["type"] == "V-logit-fuse-dynamic":
             vil_prediction = self.clfs_dict[task_id](sequence_output_v) + (
                 (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
         elif self.task_cfg[task_id]["type"] == "V-logit-fuse-self-attention" or self.task_cfg[task_id]["type"] == "V-logit-fuse-self-attention-vseq-mean-pooled":
@@ -2086,6 +2092,54 @@ class MultiLayerFusionClassifier(nn.Module):
         fused_representation_v = self.fusion_func(sequence_output_v_all)
         #print("fused_representation_v")
         #print(fused_representation_v.size())
+        return self.clf(self.dropout(fused_representation_v))
+
+
+class MultiLayerDynamicFusionClassifier(nn.Module):
+    def __init__(self, layer_indices, v_hidden_size, dropout_prob=0.1, num_clf_layers=1):
+        super(MultiLayerDynamicFusionClassifier, self).__init__()
+        if num_clf_layers == 1:
+            self.clf = nn.Linear(v_hidden_size, 1)
+        elif num_clf_layers == 2:
+            self.clf = torch.nn.Sequential(
+                        nn.Linear(v_hidden_size, v_hidden_size),
+                        GeLU(),
+                        torch.nn.Dropout(dropout_prob, inplace=False),
+                        nn.Linear(v_hidden_size, 1)
+                    )
+        else:
+            raise ValueError
+        num_layers = len(layer_indices)
+        self.num_layers = num_layers
+        self.layer_indices = layer_indices
+        self.linears = nn.ModuleList([nn.Linear(num_layers * v_hidden_size, v_hidden_size) for i in range(num_layers)])
+        self.dropout = nn.Dropout(dropout_prob)
+        print("MultiLayerDynamicFusionClassifier built")
+        print("Indices: ", layer_indices)
+        print("No. of layers: ", num_layers)
+
+    def forward(self, sequence_output_v_all):
+        """
+        :param sequence_output_v_all: a tuple of tensor [batch, v_seq_len, v_hidden_size]
+        :return:
+        """
+        target_layers = [sequence_output_v_all[idx] for idx in self.layer_indices]
+        sequence_output_v_all = torch.cat(target_layers, dim=2)  # [batch, v_seq_len, num_layers, v_hidden]
+        batch_size, v_seq_len, num_layers, v_hidden = sequence_output_v_all.size()
+        sequence_output_v_all_transformed = sequence_output_v_all.view(batch_size, v_seq_len, num_layers * v_hidden)  # [batch, v_seq_len, num_layers*v_hidden]
+        print("sequence_output_v_all_transformed")
+        print(sequence_output_v_all_transformed.size())
+        weighted_layer_representations_list = []
+        for l in range(self.num_layers):
+            W_l = self.linears[l](sequence_output_v_all_transformed)  # [batch, v_seq_len, v_hidden]
+            weighted_layer_representations_list.append(W_l * sequence_output_v_all[:,:,l,:])  # [batch, v_seq_len, v_hidden]
+        weighted_layer_representations = torch.cat(weighted_layer_representations_list, dim=2)  # [batch, v_seq_len, num_layers, v_hidden]
+        print("weighted_layer_representations")
+        print(weighted_layer_representations.size())
+        fused_representation_v = torch.sum(weighted_layer_representations, dim=2)  # [batch, v_seq_len, v_hidden]
+        print("fused_representation_v")
+        print(fused_representation_v.size())
+        exit()
         return self.clf(self.dropout(fused_representation_v))
 
 
