@@ -1206,7 +1206,8 @@ class BertForVLTasks(BertPreTrainedModel):
                                                                          task_cfg[task_id].get("layer_fusion_dropout",
                                                                                                0.1),
                                                                          task_cfg[task_id].get("num_clf_layers", 1),
-                                                                       task_cfg[task_id].get("use_bias", True)
+                                                                       task_cfg[task_id].get("use_bias", True),
+                                                                       task_cfg[task_id].get("num_attn_layers", 1)
                                                                        )
             elif task_type == "V-logit-fuse-self-attention-vseq-mean-pooled":
                 print("V-logit-fuse-self-attention-vseq-mean-pooled")
@@ -2158,7 +2159,7 @@ class MultiLayerRoutingByAgreementFusionClassifier(nn.Module):
 
 
 class MultiLayerSelfAttnFusionClassifier(nn.Module):
-    def __init__(self, layer_indices, v_hidden_size, dropout_prob=0.1, num_clf_layers=1, use_bias=True):
+    def __init__(self, layer_indices, v_hidden_size, dropout_prob=0.1, num_clf_layers=1, use_bias=True, num_attn_layers=1):
         super(MultiLayerSelfAttnFusionClassifier, self).__init__()
         if num_clf_layers == 1:
             self.clf = nn.Linear(v_hidden_size, 1)
@@ -2178,7 +2179,12 @@ class MultiLayerSelfAttnFusionClassifier(nn.Module):
         print("MultiLayerSelfAttnFusionClassifier built")
         print("Indices: ", layer_indices)
         print("No. of layers: ", num_layers)
-        self.layer_self_attn = nn.Linear(v_hidden_size, 1, bias=use_bias)
+        if num_attn_layers == 1:
+            self.layer_self_attn = nn.Linear(v_hidden_size, 1, bias=use_bias)
+        elif num_attn_layers == 2:
+            self.layer_self_attn = nn.Sequential(nn.Linear(v_hidden_size, v_hidden_size, bias=use_bias), nn.ReLU(), torch.nn.Dropout(dropout_prob, inplace=False), nn.Linear(v_hidden_size, 1, bias=use_bias))
+        else:
+            raise ValueError
         #nn.init.uniform_(self.layer_weights, a=-0.1, b=0.1)
         self.dropout = nn.Dropout(dropout_prob)
 
