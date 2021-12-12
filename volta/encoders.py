@@ -2086,7 +2086,7 @@ class MultiLayerFusionClassifier(nn.Module):
         :return:
         """
         target_layers = [sequence_output_v_all[idx] for idx in self.layer_indices]
-        sequence_output_v_all = torch.cat(target_layers, dim=2)
+        sequence_output_v_all = torch.cat(target_layers, dim=2)  # [batch, v_seq_len, num_layers*v_hidden]
         #print("sequence_output_v_all")
         #print(sequence_output_v_all.size())
         fused_representation_v = self.fusion_func(sequence_output_v_all)
@@ -2124,7 +2124,7 @@ class MultiLayerDynamicFusionClassifier(nn.Module):
         :return:
         """
         target_layers = [sequence_output_v_all[idx] for idx in self.layer_indices]
-        sequence_output_v_all = torch.cat(target_layers, dim=2)  # [batch, v_seq_len, num_layers, v_hidden]
+        sequence_output_v_all = torch.stack(target_layers, dim=2)  # [batch, v_seq_len, num_layers, v_hidden]
         print(sequence_output_v_all.size())
         batch_size, v_seq_len, num_layers, v_hidden = sequence_output_v_all.size()
         sequence_output_v_all_transformed = sequence_output_v_all.view(batch_size, v_seq_len, num_layers * v_hidden)  # [batch, v_seq_len, num_layers*v_hidden]
@@ -2134,7 +2134,7 @@ class MultiLayerDynamicFusionClassifier(nn.Module):
         for l in range(self.num_layers):
             W_l = self.linears[l](sequence_output_v_all_transformed)  # [batch, v_seq_len, v_hidden]
             weighted_layer_representations_list.append(W_l * sequence_output_v_all[:,:,l,:])  # [batch, v_seq_len, v_hidden]
-        weighted_layer_representations = torch.cat(weighted_layer_representations_list, dim=2)  # [batch, v_seq_len, num_layers, v_hidden]
+        weighted_layer_representations = torch.stack(weighted_layer_representations_list, dim=2)  # [batch, v_seq_len, num_layers, v_hidden]
         print("weighted_layer_representations")
         print(weighted_layer_representations.size())
         fused_representation_v = torch.sum(weighted_layer_representations, dim=2)  # [batch, v_seq_len, v_hidden]
