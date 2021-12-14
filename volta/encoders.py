@@ -2244,7 +2244,7 @@ class MultiLayerRoutingByAgreementFusionClassifier(nn.Module):
             print("omega")
             print(omega.size())
             if iteration < self.num_iterations - 1:
-                alpha = torch.sum(omega.expand(batch_size, v_seq_len, num_layers, self.num_capsules, self.capsule_hidden_size) * V, dim=4)
+                alpha = torch.sum(omega.expand(batch_size, v_seq_len, num_layers, self.num_capsules, self.capsule_hidden_size) * V, dim=4, keepdim=True)
                 print("alpha")
                 print(alpha.size())
                 b_ln = b_ln + alpha
