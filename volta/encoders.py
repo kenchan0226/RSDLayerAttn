@@ -1205,6 +1205,15 @@ class BertForVLTasks(BertPreTrainedModel):
                 task2clf[task_id] = MultiLayerDynamicFusionClassifier(task_cfg[task_id].fuse_layers, config.v_hidden_size,
                                                                config.v_attention_probs_dropout_prob,
                                                                task_cfg[task_id].get("num_clf_layers", 1))
+            elif task_type == "V-logit-fuse-routing-by-agreement":
+                print("V-logit-fuse-routing-by-agreement")
+                task2clf[task_id] = MultiLayerRoutingByAgreementFusionClassifier(task_cfg[task_id].fuse_layers,
+                                                                      config.v_hidden_size,
+                                                                      config.v_attention_probs_dropout_prob,
+                                                                      task_cfg[task_id].get("num_clf_layers", 1),
+                                                                      task_cfg[task_id].num_capsules,
+                                                                      task_cfg[task_id].num_iterations
+                                                                                 )
             elif task_type == "V-logit-fuse-self-attention" or task_type == "VL-visualization":
                 print("V-logit-fuse-self-attention")
                 task2clf[task_id] = MultiLayerSelfAttnFusionClassifier(task_cfg[task_id].fuse_layers,
@@ -1375,7 +1384,7 @@ class BertForVLTasks(BertPreTrainedModel):
             vil_prediction = self.clfs_dict[task_id](self.dropout(sequence_output_v)) + (
                 (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
             # vil_prediction: [batch, 37, 1]
-        elif self.task_cfg[task_id]["type"] == "V-logit-fuse" or self.task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention" or self.task_cfg[task_id]["type"] == "V-logit-fuse-fine-attention" or self.task_cfg[task_id]["type"] == "V-logit-fuse-dynamic":
+        elif self.task_cfg[task_id]["type"] == "V-logit-fuse" or self.task_cfg[task_id]["type"] == "V-logit-fuse-coarse-attention" or self.task_cfg[task_id]["type"] == "V-logit-fuse-fine-attention" or self.task_cfg[task_id]["type"] == "V-logit-fuse-dynamic" or self.task_cfg[task_id]["type"] == "V-logit-fuse-routing-by-agreement":
             vil_prediction = self.clfs_dict[task_id](sequence_output_v) + (
                 (1.0 - image_attention_mask) * -10000.0).unsqueeze(2).to(dtype=next(self.parameters()).dtype)
         elif self.task_cfg[task_id]["type"] == "V-logit-fuse-self-attention" or self.task_cfg[task_id]["type"] == "V-logit-fuse-self-attention-vseq-mean-pooled":
@@ -2145,7 +2154,7 @@ class MultiLayerDynamicFusionClassifier(nn.Module):
 
 
 class MultiLayerRoutingByAgreementFusionClassifier(nn.Module):
-    def __init__(self, layer_indices, v_hidden_size, dropout_prob=0.1, num_clf_layers=1):
+    def __init__(self, layer_indices, v_hidden_size, dropout_prob=0.1, num_clf_layers=1, num_capsules=32, num_iterations=3):
         super(MultiLayerRoutingByAgreementFusionClassifier, self).__init__()
         if num_clf_layers == 1:
             self.clf = nn.Linear(v_hidden_size, 1)
@@ -2159,23 +2168,35 @@ class MultiLayerRoutingByAgreementFusionClassifier(nn.Module):
         else:
             raise ValueError
         num_layers = len(layer_indices)
+        self.num_layers = num_layers
         self.layer_indices = layer_indices
         self.v_hidden_size = v_hidden_size
-        self.num_capsules = 32
-        self.num_iterations = 3
+        self.num_capsules = num_capsules
+        self.capsule_hidden_size = self.v_hidden_size/self.num_capsules
+        self.num_iterations = num_iterations
         #self.pre_classify_dropout = nn.Dropout(dropout_prob)
         print("MultiLayerSelfAttnFusionClassifier built")
         print("Indices: ", layer_indices)
         print("No. of layers: ", num_layers)
         self.layer_self_attn = nn.Linear(v_hidden_size, 1)
-        self.V_projection = nn.Linear(v_hidden_size, v_hidden_size/self.num_capsules, bias=False)
+        self.V_projection = [nn.ModuleList([nn.Linear(v_hidden_size, v_hidden_size/self.num_capsules, bias=False) for j in range(self.num_capsules)]) for i in range(num_layers)]
+        #self.linears = nn.ModuleList([nn.Linear(num_layers * v_hidden_size, v_hidden_size) for i in range(num_layers)])
         #nn.init.uniform_(self.layer_weights, a=-0.1, b=0.1)
         self.dropout = nn.Dropout(dropout_prob)
 
+    """
     def squash(self, tensor, dim=-1):
         squared_norm = (tensor ** 2).sum(dim=dim, keepdim=True)
         scale = squared_norm / (1 + squared_norm)
         return scale * tensor / torch.sqrt(squared_norm)
+    """
+    def squash(self, input_tensor):
+        # input_tensor: [batch, v_seq_len, 1, num_capsules, v_hidden/num_capsules]
+        squared_norm = (input_tensor ** 2).sum(-1, keepdim=True)  # [batch, v_seq_len, 1, num_capsules, 1]
+        print("squared_norm")
+        print(squared_norm.size())
+        output_tensor = squared_norm * input_tensor / ((1. + squared_norm) * torch.sqrt(squared_norm))  # [batch, v_seq_len, 1, num_capsules, v_hidden/num_capsules]
+        return output_tensor
 
     def forward(self, sequence_output_v_all):
         """
@@ -2187,29 +2208,54 @@ class MultiLayerRoutingByAgreementFusionClassifier(nn.Module):
         #print(sequence_output_v_all[0].size())
         target_layers = [sequence_output_v_all[idx] for idx in self.layer_indices]
         target_layers_tensor = torch.stack(target_layers, dim=2)  # [batch, v_seq_len, num_layers, v_hidden]
+        print("target_layers_tensor")
+        print(target_layers_tensor.size())
         batch_size, v_seq_len, num_layers, _ = target_layers_tensor.size()
         #print("target_layers_tensor")
         #print(target_layers_tensor.size())
 
         # Routing by agreement
         # construct V
-        V = self.V_projection(target_layers_tensor)  # [batch, v_seq_len, num_layers, v_hidden/num_capsules]
-        logits = torch.zeros().cuda(batch_size, v_seq_len, num_layers, self.num_capsules)  # [batch, v_seq_len, num_layers, num_capsules]
-        for i in range(self.num_iterations):
-            probs = softmax(logits, dim=-1)  # [batch, v_seq_len, num_layers, num_capsules]
-            outputs = self.squash((probs * priors).sum(dim=2, keepdim=True))
+        V_list = []
+        for l in range(self.num_layers):
+            V_l_list = []
+            for n in range(self.num_capsules):
+                V_ln = self.V_projection[l][n](target_layers_tensor[:, :, l, :])  # [batch, v_seq_len, v_hidden/num_capsules]
+                V_l_list.append(V_ln)
+            V_l = torch.stack(V_l_list, dim=2)  # [batch, v_seq_len, num_layers, v_hidden/num_capsules]
+            V_list.append(V_l)
+        V = torch.stack(V_list, dim=3)  # [batch, v_seq_len, num_layers, num_capsules, v_hidden/num_capsules]
+        b_ln = torch.zeros(batch_size, v_seq_len, num_layers, self.num_capsules, 1)
+        print("V")
+        print(V.size())
+        print("b_ln")
+        print(b_ln.size())
 
-        # Layer attention
-        layer_weights_normalized = F.softmax(self.layer_self_attn(target_layers_tensor), dim=2)  # [batch, v_seq_len, num_layers, 1]
-        layer_weights_normalized_expanded = layer_weights_normalized.expand(-1, -1, -1, self.v_hidden_size)  # [batch, v_seq_len, num_layers, v_hidden]
+        for iteration in range(self.num_iterations):
+            C = F.softmax(b_ln, dim=3)  # [1, 1, num_layers, num_capsules, 1]
+            C = C.expand(batch_size, v_seq_len, num_layers, self.num_capsules, self.capsule_hidden_size)  # [batch, v_seq_len, num_layers, num_capsules, v_hidden/num_capsules]
+            S = (C * V).sum(dim=2, keepdim=True)  # [batch, v_seq_len, 1, num_capsules, v_hidden/num_capsules]
+            print("S")
+            print(S.size())
+            omega = self.squash(S)  # [batch, v_seq_len, 1, num_capsules, v_hidden/num_capsules]
+            print("omega")
+            print(omega.size())
+            if iteration < self.num_iterations - 1:
+                alpha = torch.sum(omega.expand(batch_size, v_seq_len, num_layers, self.num_capsules, self.capsule_hidden_size) * V, dim=4)
+                print("alpha")
+                print(alpha.size())
+                b_ln = b_ln + alpha
+        # concat omega
+        omega_concated = torch.cat([omega[:,:,:,n,:] for n in range(self.num_capsules)], dim=4)  # [batch, v_seq_len, 1, v_hidden]
+        print("omega_concated")
+        print(omega_concated.size())
+        fused_representation_v = omega_concated.squeeze(2)  # [batch, v_seq_len, v_hidden]
+        print("fused_representation_v")
+        print(fused_representation_v.size())
+        exit()
 
-        fused_representation_v = torch.sum(target_layers_tensor * layer_weights_normalized_expanded, dim=2)  # [batch, v_seq_len, v_hidden]
-        #print("layer_weights_normalized_expanded")
-        #print(layer_weights_normalized_expanded[0,0].detach().cpu().numpy())
-        #print("fused_representation_v")
-        #print(fused_representation_v.size())
         region_clf_logit = self.clf(self.dropout(fused_representation_v))  # [batch, v_seq_len, 1]
-        return region_clf_logit, layer_weights_normalized.squeeze(3), fused_representation_v
+        return self.clf(self.dropout(fused_representation_v))
         #return region_clf_logit, layer_weights_normalized.squeeze(3)
 
 
