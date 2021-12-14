@@ -2176,9 +2176,9 @@ class MultiLayerRoutingByAgreementFusionClassifier(nn.Module):
         self.capsule_hidden_size = self.v_hidden_size//self.num_capsules
         self.num_iterations = num_iterations
         #self.pre_classify_dropout = nn.Dropout(dropout_prob)
-        print("MultiLayerSelfAttnFusionClassifier built")
-        print("Indices: ", layer_indices)
-        print("No. of layers: ", num_layers)
+        #print("MultiLayerSelfAttnFusionClassifier built")
+        #print("Indices: ", layer_indices)
+        #print("No. of layers: ", num_layers)
         self.layer_self_attn = nn.Linear(v_hidden_size, 1)
         self.V_projection = [nn.ModuleList([nn.Linear(v_hidden_size, self.capsule_hidden_size, bias=False).cuda() for j in range(self.num_capsules)]) for i in range(num_layers)]
         #self.linears = nn.ModuleList([nn.Linear(num_layers * v_hidden_size, v_hidden_size) for i in range(num_layers)])
@@ -2194,8 +2194,8 @@ class MultiLayerRoutingByAgreementFusionClassifier(nn.Module):
     def squash(self, input_tensor):
         # input_tensor: [batch, v_seq_len, 1, num_capsules, v_hidden/num_capsules]
         squared_norm = (input_tensor ** 2).sum(-1, keepdim=True)  # [batch, v_seq_len, 1, num_capsules, 1]
-        print("squared_norm")
-        print(squared_norm.size())
+        #print("squared_norm")
+        #print(squared_norm.size())
         output_tensor = squared_norm * input_tensor / ((1. + squared_norm) * torch.sqrt(squared_norm))  # [batch, v_seq_len, 1, num_capsules, v_hidden/num_capsules]
         return output_tensor
 
@@ -2209,8 +2209,8 @@ class MultiLayerRoutingByAgreementFusionClassifier(nn.Module):
         #print(sequence_output_v_all[0].size())
         target_layers = [sequence_output_v_all[idx] for idx in self.layer_indices]
         target_layers_tensor = torch.stack(target_layers, dim=2)  # [batch, v_seq_len, num_layers, v_hidden]
-        print("target_layers_tensor")
-        print(target_layers_tensor.size())
+        #print("target_layers_tensor")
+        #print(target_layers_tensor.size())
         batch_size, v_seq_len, num_layers, _ = target_layers_tensor.size()
         #print("target_layers_tensor")
         #print(target_layers_tensor.size())
@@ -2224,38 +2224,38 @@ class MultiLayerRoutingByAgreementFusionClassifier(nn.Module):
                 V_ln = self.V_projection[l][n](target_layers_tensor[:, :, l, :])  # [batch, v_seq_len, v_hidden/num_capsules]
                 V_l_list.append(V_ln)
             V_l = torch.stack(V_l_list, dim=2)  # [batch, v_seq_len, num_capsules, v_hidden/num_capsules]
-            print("V_l")
-            print(V_l.size())
+            #print("V_l")
+            #print(V_l.size())
             V_list.append(V_l)
         V = torch.stack(V_list, dim=2)  # [batch, v_seq_len, num_layers, num_capsules, v_hidden/num_capsules]
         b_ln = torch.zeros(batch_size, v_seq_len, num_layers, self.num_capsules, 1).to(target_layers_tensor.device)
-        print("V")
-        print(V.size())
-        print("b_ln")
-        print(b_ln.size())
+        #print("V")
+        #print(V.size())
+        #print("b_ln")
+        #print(b_ln.size())
 
         for iteration in range(self.num_iterations):
             C = F.softmax(b_ln, dim=3)  # [1, 1, num_layers, num_capsules, 1]
             C = C.expand(batch_size, v_seq_len, num_layers, self.num_capsules, self.capsule_hidden_size)  # [batch, v_seq_len, num_layers, num_capsules, v_hidden/num_capsules]
             S = (C * V).sum(dim=2, keepdim=True)  # [batch, v_seq_len, 1, num_capsules, v_hidden/num_capsules]
-            print("S")
-            print(S.size())
+            #print("S")
+            #print(S.size())
             omega = self.squash(S)  # [batch, v_seq_len, 1, num_capsules, v_hidden/num_capsules]
-            print("omega")
-            print(omega.size())
+            #print("omega")
+            #print(omega.size())
             if iteration < self.num_iterations - 1:
                 alpha = torch.sum(omega.expand(batch_size, v_seq_len, num_layers, self.num_capsules, self.capsule_hidden_size) * V, dim=4, keepdim=True)
-                print("alpha")
-                print(alpha.size())
+                #print("alpha")
+                #print(alpha.size())
                 b_ln = b_ln + alpha
         # concat omega
         omega_concated = torch.cat([omega[:,:,:,n,:] for n in range(self.num_capsules)], dim=3)  # [batch, v_seq_len, 1, v_hidden]
-        print("omega_concated")
-        print(omega_concated.size())
+        #print("omega_concated")
+        #print(omega_concated.size())
         fused_representation_v = omega_concated.squeeze(2)  # [batch, v_seq_len, v_hidden]
-        print("fused_representation_v")
-        print(fused_representation_v.size())
-        exit()
+        #print("fused_representation_v")
+        #print(fused_representation_v.size())
+        #exit()
 
         region_clf_logit = self.clf(self.dropout(fused_representation_v))  # [batch, v_seq_len, 1]
         return self.clf(self.dropout(fused_representation_v))
