@@ -2226,7 +2226,7 @@ class MultiLayerRoutingByAgreementFusionClassifier(nn.Module):
             V_l = torch.stack(V_l_list, dim=2)  # [batch, v_seq_len, num_layers, v_hidden/num_capsules]
             V_list.append(V_l)
         V = torch.stack(V_list, dim=3)  # [batch, v_seq_len, num_layers, num_capsules, v_hidden/num_capsules]
-        b_ln = torch.zeros(batch_size, v_seq_len, num_layers, self.num_capsules, 1)
+        b_ln = torch.zeros(batch_size, v_seq_len, num_layers, self.num_capsules, 1).to(sequence_output_v_all.device)
         print("V")
         print(V.size())
         print("b_ln")
