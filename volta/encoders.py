@@ -2249,7 +2249,7 @@ class MultiLayerRoutingByAgreementFusionClassifier(nn.Module):
                 print(alpha.size())
                 b_ln = b_ln + alpha
         # concat omega
-        omega_concated = torch.cat([omega[:,:,:,n,:] for n in range(self.num_capsules)], dim=4)  # [batch, v_seq_len, 1, v_hidden]
+        omega_concated = torch.cat([omega[:,:,:,n,:] for n in range(self.num_capsules)], dim=3)  # [batch, v_seq_len, 1, v_hidden]
         print("omega_concated")
         print(omega_concated.size())
         fused_representation_v = omega_concated.squeeze(2)  # [batch, v_seq_len, v_hidden]
