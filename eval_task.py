@@ -199,7 +199,8 @@ def main():
         ave_score = tb_logger.showLossVal(task)
 
     avg_inference_time = total_inference_time / len(dl_val)
-    print("Avg. inference time: {:.5f}".format(avg_inference_time))
+    print("Total inference time: {:.5f}".format(total_inference_time))
+    print("Inference time per batch: {:.5f}".format(avg_inference_time))
 
     if args.split:
         json_path = os.path.join(savePath, args.split)
