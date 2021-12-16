@@ -2122,7 +2122,7 @@ class MultiLayerDynamicFusionClassifier(nn.Module):
         self.num_layers = num_layers
         self.layer_indices = layer_indices
         #self.linears = nn.ModuleList([nn.Linear(num_layers * v_hidden_size, v_hidden_size) for i in range(num_layers)])
-        self.linears = nn.ModuleList([nn.Sequential(nn.Linear(num_layers * v_hidden_size, v_hidden_size), nn.ReLU(), nn.Linear(v_hidden_size, v_hidden_size)) for i in range(num_layers)])
+        self.linears = nn.ModuleList([nn.Sequential(nn.Linear(num_layers * v_hidden_size, v_hidden_size), GeLU(), nn.Linear(v_hidden_size, v_hidden_size)) for i in range(num_layers)])
         self.dropout = nn.Dropout(dropout_prob)
         print("MultiLayerDynamicFusionClassifier built")
         print("Indices: ", layer_indices)
