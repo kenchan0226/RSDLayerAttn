@@ -17,6 +17,7 @@ from transformers import AutoTokenizer
 from volta.datasets import DatasetMapTrain, DatasetMapEval
 from volta.datasets._image_features_reader import ImageFeaturesH5Reader
 from volta.losses import InfoNCELoss, ListNetLoss
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -912,6 +913,7 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
     if task_cfg[task_id]["type"] == "VL-obj-categorize-probing-mask-text":
         input_mask = torch.zeros_like(question)
 
+    model_inference_start_time = time.time()
     with torch.no_grad():
         if output_all_encoded_layers:
             vil_prediction, vision_prediction, linguisic_prediction, _, _, _ = model(question, features, spatials,
@@ -923,6 +925,8 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
             vil_prediction, vision_prediction, linguisic_prediction, _ = model(question, features, spatials, task_id,
                                                                                segment_ids, input_mask, image_mask,
                                                                                output_all_encoded_layers)
+    model_inference_time = time.time() - model_inference_start_time
+    selection_time = 0
 
     if task_cfg[task_id]["type"] == "VL-classifier":
         logits = torch.max(vil_prediction, 1)[1].data  # argmax
@@ -1004,7 +1008,9 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         #print("vil_prediction")
         #print(vil_prediction[0,:,0])
         # vli_predition: [batch, num_regions, 1]
+        selection_start_time = time.time()
         _, select_idx = torch.max(vil_prediction, dim=1)
+        selection_time = time.time() - selection_start_time
         #print(select_idx.size())
         #print("idx")
         #print(select_idx[0])
@@ -1042,7 +1048,9 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         #print("vil_prediction")
         #print(vil_prediction[0,:,0])
         # vli_predition: [batch, num_regions, 1]
+        selection_start_time = time.time()
         _, select_idx = torch.max(pred_scores, dim=1)
+        selection_time = time.time() - selection_start_time
         #print(select_idx.size())
         #print("idx")
         #print(select_idx[0])
@@ -1496,4 +1504,5 @@ def EvaluatingModel(config, task_cfg, device, task_id, batch, model, dataloader,
         batch_score = compute_score_with_logits(vil_prediction, target).sum()
 
     #return float(loss), float(batch_score), batch_size, results, others, bbox
-    return float(loss), batch_score, batch_size, results, others, bbox
+
+    return float(loss), batch_score, batch_size, results, others, bbox, model_inference_time+selection_time

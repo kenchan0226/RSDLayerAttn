@@ -170,9 +170,13 @@ def main():
         pred_all = []
         ref_all = []
         print("init holder for f1 score")
+
+    total_inference_time = 0
+
     for i, batch in tqdm(enumerate(dl_val), total=task2num_iters[task]):
-        loss, score, batch_size, results, others, bbox = EvaluatingModel(config, task_cfg, device, task, batch,
+        loss, score, batch_size, results, others, bbox, inference_time = EvaluatingModel(config, task_cfg, device, task, batch,
                                                                    model, dl_val, criterion, results, others, bbox)
+        total_inference_time += inference_time
         if task_id == "91" or task_id == "95":  # for probing task
             acc_score, pred_list, ref_list = score
             pred_all += pred_list
@@ -193,6 +197,9 @@ def main():
         print(ref_all)
     else:
         ave_score = tb_logger.showLossVal(task)
+
+    avg_inference_time = total_inference_time / len(dl_val)
+    print("Avg. inference time: {:.5f}".format(avg_inference_time))
 
     if args.split:
         json_path = os.path.join(savePath, args.split)
