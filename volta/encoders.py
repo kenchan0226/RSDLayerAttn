@@ -2182,7 +2182,8 @@ class MultiLayerRoutingByAgreementFusionClassifier(nn.Module):
         #print("No. of layers: ", num_layers)
         self.layer_self_attn = nn.Linear(v_hidden_size, 1)
         #self.V_projection = [nn.ModuleList([nn.Linear(v_hidden_size, self.capsule_hidden_size, bias=False).cuda() for j in range(self.num_capsules)]) for i in range(num_layers)]
-        self.V_projection = nn.Linear(v_hidden_size, self.capsule_hidden_size, bias=False)
+        #self.V_projection = nn.Linear(v_hidden_size, self.capsule_hidden_size, bias=False)
+        self.V_projection = [nn.Linear(v_hidden_size, self.capsule_hidden_size, bias=False) for j in range(self.num_capsules)]
         #self.linears = nn.ModuleList([nn.Linear(num_layers * v_hidden_size, v_hidden_size) for i in range(num_layers)])
         #nn.init.uniform_(self.layer_weights, a=-0.1, b=0.1)
         self.dropout = nn.Dropout(dropout_prob)
@@ -2232,13 +2233,25 @@ class MultiLayerRoutingByAgreementFusionClassifier(nn.Module):
             V_list.append(V_l)
         V = torch.stack(V_list, dim=2)  # [batch, v_seq_len, num_layers, num_capsules, v_hidden/num_capsules]
         """
-        target_layers_tensor_expanded = target_layers_tensor.unsqueeze(3).expand(batch_size, v_seq_len, num_layers, self.num_capsules, v_hidden_size)  # [batch, v_seq_len, num_layers, num_capsules, v_hidden]
+        # target_layers_tensor [batch, v_seq_len, num_layers, v_hidden]
+        V_list = []
+        for n in range(self.num_capsules):
+            V_n = self.V_projection[n](
+                target_layers_tensor)  # [batch, v_seq_len, num_layers, v_hidden/num_capsules]
+            V_list.append(V_n)
+            print("V_n")
+            print(V_n.size())
+        V = torch.stack(V_list, dim=3)  # [batch, v_seq_len, num_layers, num_capsules, v_hidden/num_capsules]
+        print("V")
+        print(V.size())
+        exit()
+
+        #target_layers_tensor_expanded = target_layers_tensor.unsqueeze(3).expand(batch_size, v_seq_len, num_layers, self.num_capsules, v_hidden_size)  # [batch, v_seq_len, num_layers, num_capsules, v_hidden]
         #print("target_layers_tensor_expanded")
         #print(target_layers_tensor_expanded.size())
-        V = self.V_projection(target_layers_tensor_expanded)  # [batch, v_seq_len, num_layers, num_capsules, v_hidden/num_capsules]
+        #V = self.V_projection(target_layers_tensor_expanded)  # [batch, v_seq_len, num_layers, num_capsules, v_hidden/num_capsules]
+
         b_ln = torch.zeros(batch_size, v_seq_len, num_layers, self.num_capsules, 1).to(target_layers_tensor.device)
-        #print("V")
-        #print(V.size())
         #print("b_ln")
         #print(b_ln.size())
 
