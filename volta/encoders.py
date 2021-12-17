@@ -2239,12 +2239,12 @@ class MultiLayerRoutingByAgreementFusionClassifier(nn.Module):
             V_n = self.V_projection[n](
                 target_layers_tensor)  # [batch, v_seq_len, num_layers, v_hidden/num_capsules]
             V_list.append(V_n)
-            print("V_n")
-            print(V_n.size())
+            #print("V_n")
+            #print(V_n.size())
         V = torch.stack(V_list, dim=3)  # [batch, v_seq_len, num_layers, num_capsules, v_hidden/num_capsules]
-        print("V")
-        print(V.size())
-        exit()
+        #print("V")
+        #print(V.size())
+        #exit()
 
         #target_layers_tensor_expanded = target_layers_tensor.unsqueeze(3).expand(batch_size, v_seq_len, num_layers, self.num_capsules, v_hidden_size)  # [batch, v_seq_len, num_layers, num_capsules, v_hidden]
         #print("target_layers_tensor_expanded")
