@@ -2183,7 +2183,7 @@ class MultiLayerRoutingByAgreementFusionClassifier(nn.Module):
         self.layer_self_attn = nn.Linear(v_hidden_size, 1)
         #self.V_projection = [nn.ModuleList([nn.Linear(v_hidden_size, self.capsule_hidden_size, bias=False).cuda() for j in range(self.num_capsules)]) for i in range(num_layers)]
         #self.V_projection = nn.Linear(v_hidden_size, self.capsule_hidden_size, bias=False)
-        self.V_projection = [nn.Linear(v_hidden_size, self.capsule_hidden_size, bias=False) for j in range(self.num_capsules)]
+        self.V_projection = nn.ModuleList([nn.Linear(v_hidden_size, self.capsule_hidden_size, bias=False) for j in range(self.num_capsules)])
         #self.linears = nn.ModuleList([nn.Linear(num_layers * v_hidden_size, v_hidden_size) for i in range(num_layers)])
         #nn.init.uniform_(self.layer_weights, a=-0.1, b=0.1)
         self.dropout = nn.Dropout(dropout_prob)
