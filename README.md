@@ -2,7 +2,7 @@
 
 This repository contains the source code for our paper "Grounding Commands for Autonomous Vehicles via Region-specific Dynamic Layer Attention". 
 
-Our code is built on the excellent repository of [VOLTA](https://github.com/e-bug/volta). 
+Our code is built on the excellent repository of [VOLTA](https://github.com/e-bug/volta).
 
 ## Repository Setup
 
@@ -36,7 +36,21 @@ python setup.py develop
 ```
 
 ## Data
-Check out [`data/README.md`](data/README.md) for links to preprocessed data and data preparation steps.
+We conduct experiments on the [Talk2Car](https://github.com/talk2car/Talk2Car) dataset. If you use this dataset, please cite their paper. 
+```
+Thierry Deruyttere, Simon Vandenhende, Dusan Grujicic, Luc Van Gool, Marie-Francine Moens:
+Talk2Car: Taking Control of Your Self-Driving Car. EMNLP 2019
+```
+
+The followings are our preprocessed data.
+
+Download the regions extracted by centernet (we only keep the top 36 regions) from [here](https://www.dropbox.com/s/zlc8cv53lzqwjc0/talk2car_centernet_dets_36.json?dl=0) and move this file to `./data/talk2car/talk2car_centernet_dets_36.json`
+
+Download the `instances.json` from [here](https://www.dropbox.com/s/neb3fhggqujs8rp/instances.json?dl=0) and move it to `./data/talk2car/annotations/talk2car/instances.json`
+
+Download the `refs_spacy.json` from [here](https://www.dropbox.com/s/ad6okorhusz4t9c/refs_spacy.p?dl=0) and move it to `./data/talk2car/annotations/talk2car/refs_spacy.json`
+
+Download the region features extracted by Faster R-CNN from [here](https://pan.baidu.com/s/10Jo2KQlUAV1MKRA_a22_dg), the password is `RSDL`, unzip data.zip.001 and data.zip.002, then move the files to `./data/talk2car/resnet101_faster_rcnn_genome_imgfeats_centernet/volta/refcoco+_unc_dets36_feat.lmdb/lock.mdb` and `./data/talk2car/resnet101_faster_rcnn_genome_imgfeats_centernet/volta/refcoco+_unc_dets36_feat.lmdb/data.mdb`. 
 
 ## Pre-trained Models
 
