@@ -4,7 +4,7 @@ This repository contains the source code for our IROS 2022 paper "[Grounding Com
 
 Our code is built on the excellent repository of [VOLTA](https://github.com/e-bug/volta).
 
-
+We also upload a demo video of our model in [here](article_and_demo_video/demo_video.mp4).
 
 ## Repository Setup
 
