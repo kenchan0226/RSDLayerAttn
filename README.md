@@ -6,16 +6,6 @@ Our code is built on the excellent repository of [VOLTA](https://github.com/e-bu
 
 We also upload a demo video of our model in [here](article_and_demo_video/demo_video.mp4).
 
-If you use this code, please cite our paper:
-```
-@inproceedings{conf/acl/chan19keyphraseRL,
-  title={Grounding Commands for Autonomous Vehicles via Layer Fusion with Region-specific Dynamic Layer Attention},
-  author={Hou Pong Chan and Mingxi Guo and Cheng-Zhong Xu},
-  booktitle={Proceedings of IROS},
-  year={2022}
-}
-```
-
 ## Repository Setup
 
 1\. Create a fresh conda environment, and install all dependencies.
