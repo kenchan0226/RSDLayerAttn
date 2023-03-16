@@ -1,12 +1,20 @@
 # Grounding Commands for Autonomous Vehicles via Region-specific Dynamic Layer Attention
 
-This repository contains the source code for our IROS 2022 paper "[Grounding Commands for Autonomous Vehicles via Region-specific Dynamic Layer Attention](https://arxiv.org/abs/2203.06822)". 
-
-If you use this source code. Please cite our paper. 
+This repository contains the source code for our IROS 2022 paper "[Grounding Commands for Autonomous Vehicles via Region-specific Dynamic Layer Attention](https://arxiv.org/abs/2203.06822)".
 
 Our code is built on the excellent repository of [VOLTA](https://github.com/e-bug/volta).
 
 We also upload a demo video of our model in [here](article_and_demo_video/demo_video.mp4).
+
+If you use this code, please cite our paper:
+ ```
+ @inproceedings{conf/acl/chan19keyphraseRL,
+   title={Grounding Commands for Autonomous Vehicles via Layer Fusion with Region-specific Dynamic Layer Attention},
+   author={Hou Pong Chan and Mingxi Guo and Cheng-Zhong Xu},
+   booktitle={Proceedings of IROS},
+   year={2022}
+ }
+ ```
 
 ## Repository Setup
 
