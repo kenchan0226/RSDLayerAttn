@@ -2,6 +2,8 @@
 
 This repository contains the source code for our IROS 2022 paper "[Grounding Commands for Autonomous Vehicles via Region-specific Dynamic Layer Attention](https://arxiv.org/abs/2203.06822)". 
 
+If you use this source code. Please cite our paper. 
+
 Our code is built on the excellent repository of [VOLTA](https://github.com/e-bug/volta).
 
 We also upload a demo video of our model in [here](article_and_demo_video/demo_video.mp4).
@@ -9,20 +11,20 @@ We also upload a demo video of our model in [here](article_and_demo_video/demo_v
 ## Repository Setup
 
 1\. Create a fresh conda environment, and install all dependencies.
-```text
+```
 conda create -n volta python=3.6
 conda activate volta
 pip install -r requirements.txt
 ```
 
 2\. Install PyTorch
-```text
+```
 conda install pytorch=1.4.0 torchvision=0.5 cudatoolkit=10.1 -c pytorch
 ```
 
 3\. Install [apex](https://github.com/NVIDIA/apex).
 If you use a cluster, you may want to first run commands like the following:
-```text
+```
 module load cuda/10.1.105
 module load gcc/8.3.0-cuda
 ```
@@ -33,7 +35,7 @@ cd tools/refer; make
 ```
 
 5\. Install this codebase as a package in this environment.
-```text
+```
 python setup.py develop
 ```
 
@@ -50,7 +52,7 @@ Download the regions extracted by centernet (we only keep the top 36 regions) fr
 
 Download the `instances.json` from [here](https://www.dropbox.com/s/neb3fhggqujs8rp/instances.json?dl=0) and move it to `./data/talk2car/annotations/talk2car/instances.json`
 
-Download the `refs_spacy.json` from [here](https://www.dropbox.com/s/ad6okorhusz4t9c/refs_spacy.p?dl=0) and move it to `./data/talk2car/annotations/talk2car/refs_spacy.json`
+Download the `refs_spacy.p` from [here](https://www.dropbox.com/s/ad6okorhusz4t9c/refs_spacy.p?dl=0) and move it to `./data/talk2car/annotations/talk2car/refs_spacy.p`
 
 Download the region features extracted by Faster R-CNN from [here](https://pan.baidu.com/s/10Jo2KQlUAV1MKRA_a22_dg), the password is `RSDL`, unzip data.zip.001 and data.zip.002, then move the files to `./data/talk2car/resnet101_faster_rcnn_genome_imgfeats_centernet/volta/refcoco+_unc_dets36_feat.lmdb/lock.mdb` and `./data/talk2car/resnet101_faster_rcnn_genome_imgfeats_centernet/volta/refcoco+_unc_dets36_feat.lmdb/data.mdb`. 
 
