@@ -56,6 +56,12 @@ Talk2Car: Taking Control of Your Self-Driving Car. EMNLP 2019
 
 The followings are our preprocessed data.
 
+First, create a directory `mkdir ./data/talk2car/`. 
+
+Download the image tar.gz file from [here](https://www.dropbox.com/scl/fi/7bh5g3o37aj0jzlmkeoy1/images.tar.gz?rlkey=l9lgrpzjgmwwwflp1dsrvd5oo&dl=0), extract it, and move the `images` directory to `./data/talk2car/images`, i.e., `mv images ./data/talk2car/images`. 
+
+Download the mapping file from [here](https://www.dropbox.com/scl/fi/let3ywu80da4m0a65xnhu/talk2car_w_rpn_no_duplicates.json?rlkey=o65p4d0bd38r6ape8bphgx35s&dl=0) and move this file to `./data/talk2car/talk2car_w_rpn_no_duplicates.json`.
+
 Download the regions extracted by centernet (we only keep the top 36 regions) from [here](https://www.dropbox.com/s/zlc8cv53lzqwjc0/talk2car_centernet_dets_36.json?dl=0) and move this file to `./data/talk2car/talk2car_centernet_dets_36.json`
 
 Download the `instances.json` from [here](https://www.dropbox.com/s/neb3fhggqujs8rp/instances.json?dl=0) and move it to `./data/talk2car/annotations/talk2car/instances.json`
@@ -93,3 +99,7 @@ python generate_prediction.py --result_path ./results/talk2car/ctrl_uniter/pytor
 ```
 
 Submit the json file `./results/talk2car/ctrl_uniter/pytorch_model_best.bin/predictions_for_leaderboard.json` to the leaderboard of Talk2Car [here](https://www.aicrowd.com/challenges/eccv-2020-commands-4-autonomous-vehicles) (create submission button). 
+
+# Plot the predicted bounding box
+
+Please take a look at the `plot_prediction.py`. 
